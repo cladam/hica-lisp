@@ -23,7 +23,7 @@ fun run_forms(tokens: list<string>, env: Env) {
 
 // Interactive REPL loop
 fun repl(env: Env) {
-  let src = input("hilisp> ")
+  let src = input("hilisp=> ")
   if src == "(quit)" || src == ":quit" || src == "(exit)" {
     println("bye!")
   } else {

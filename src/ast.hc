@@ -8,7 +8,7 @@ pub type LVal {
   LStr(s: string),
   LBool(b: bool),
   LList(items: list<LVal>),
-  LFun(params: list<string>, body: LVal, env: Env),
+  LFun(fname: string, params: list<string>, body: LVal, env: Env),
   LBuiltin(name: string),
   LNil
 }

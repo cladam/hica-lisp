@@ -1,7 +1,10 @@
 // Tokeniser — turns raw source text into a flat list of tokens.
-// Parens and the quote shorthand (') get padded with spaces so a simple split works.
+// Pads parens and quote shorthand so a simple split works.
+// Also normalise whitespace (tabs, newlines) to spaces so multi-line
+// source files tokenise correctly.
 pub fun tokenise(input: string) : list<string> {
-  let step1 = replace(replace(input, "(", " ( "), ")", " ) ")
+  let step0 = replace(replace(input, "\n", " "), "\t", " ")
+  let step1 = replace(replace(step0, "(", " ( "), ")", " ) ")
   let step2 = replace(step1, "'", " ' ")
   words(step2)
 }
@@ -16,4 +19,9 @@ test "tokenise nested expression" {
 
 test "tokenise quote shorthand" {
   assert_eq(tokenise("'x"), ["'", "x"])
+}
+
+test "tokenise multi-line expression" {
+  let src = "(defn foo (x)\n  (* x x))"
+  assert_eq(tokenise(src), ["(", "defn", "foo", "(", "x", ")", "(", "*", "x", "x", ")", ")"])
 }

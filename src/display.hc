@@ -12,7 +12,7 @@ pub fun lval_show(v: LVal) : string =>
     LNil               => "nil",
     LList(items)       => "(" + join(map(items, lval_show), " ") + ")",
     LBuiltin(name)     => "#<builtin:" + name + ">",
-    LFun(params, _, _) => "#<fn(" + join(params, " ") + ")>"
+    LFun(fname, params, _, _) => if fname == "" { "#<fn(" + join(params, " ") + ")>" } else { "#<fn:" + fname + "(" + join(params, " ") + ")>" }
   }
 
 test "show primitives" {

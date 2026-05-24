@@ -10,7 +10,7 @@ pub type lval
   LStr(s : string)
   LBool(b : bool)
   LList(items : list<lval>)
-  LFun(params : list<string>, body : lval, env : env)
+  LFun(fname : string, params : list<string>, body : lval, env : env)
   LBuiltin(name : string)
   LNil
 
@@ -21,7 +21,7 @@ pub fun lval/show(v : lval) : div string
     LStr(s) -> "LStr(" ++ s ++ ")"
     LBool(b) -> "LBool(" ++ b.show ++ ")"
     LList(items) -> "LList(" ++ items.show ++ ")"
-    LFun(params, body, env) -> "LFun(" ++ params.show ++ ", " ++ lval/show(body) ++ ", " ++ env/show(env) ++ ")"
+    LFun(fname, params, body, env) -> "LFun(" ++ fname ++ ", " ++ params.show ++ ", " ++ lval/show(body) ++ ", " ++ env/show(env) ++ ")"
     LBuiltin(name) -> "LBuiltin(" ++ name ++ ")"
     LNil -> "LNil"
 

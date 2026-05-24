@@ -1,0 +1,10 @@
+; Basic arithmetic in HiLisp
+(println (+ 10 20))
+(println (- 100 37))
+(println (* 6 7))
+(println (/ 15 3))
+(println (< 3 5))
+(println (= 42 42))
+(def x 10)
+(def y 3)
+(println (+ (* x x) (* y y)))

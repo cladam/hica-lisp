@@ -103,7 +103,12 @@ pub fun eval_if(cond_expr: LVal, then_expr: LVal, else_expr: LVal, env: Env) : (
 // Bind a name in the current env and return the value
 pub fun eval_def(name: string, val_expr: LVal, env: Env) : (LVal, Env) {
   let (v, env2) = eval(val_expr, env)
-  (v, env_set(env2, name, v))
+  // If defining a function, brand it with its name so apply can inject self-reference
+  let v2 = match v {
+    LFun(_, params, body, closure) => LFun(name, params, body, closure),
+    _ => v
+  }
+  (v2, env_set(env2, name, v2))
 }
 
 // Extract symbol names from a parameter list — non-symbols are silently skipped
@@ -117,7 +122,7 @@ pub fun extract_params(params: list<LVal>) : list<string> =>
 // Capture the current env as a closure
 pub fun eval_lambda(params: list<LVal>, body: LVal, env: Env) : (LVal, Env) {
   let param_names = extract_params(params)
-  (LFun(param_names, body, env), env)
+  (LFun("", param_names, body, env), env)
 }
 
 // Evaluate each argument left-to-right, threading env through
@@ -141,8 +146,10 @@ pub fun bind_params(params: list<string>, args: list<LVal>, env: Env) : Env =>
 // Apply a callable to evaluated arguments
 pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) =>
   match f {
-    LFun(params, body, closure_env) => {
-      let call_env    = bind_params(params, args, Env([], closure_env))
+    LFun(fname, params, body, closure_env) => {
+      // Inject self-reference so named functions can call themselves recursively
+      let base_env    = if fname == "" { closure_env } else { env_set(closure_env, fname, f) }
+      let call_env    = bind_params(params, args, Env([], base_env))
       let (result, _) = eval(body, call_env)
       (result, env)  // discard inner scope, return calling env
     },
@@ -194,4 +201,19 @@ test "eval lambda definition and call" {
   let (_, env2) = eval(LList([LSym("def"), LSym("double"), fn_expr]), env)
   let (r, _)    = eval(LList([LSym("double"), LNum(5)]), env2)
   assert_eq(lval_show(r), "10")
+}
+
+test "eval recursive defn" {
+  // factorial: (defn fact (n) (if (<= n 1) 1 (* n (fact (- n 1)))))
+  let env0 = make_env()
+  let body = LList([LSym("if"),
+    LList([LSym("<="), LSym("n"), LNum(1)]),
+    LNum(1),
+    LList([LSym("*"), LSym("n"), LList([LSym("fact"), LList([LSym("-"), LSym("n"), LNum(1)])])])])
+  let defn_expr = LList([LSym("defn"), LSym("fact"), LList([LSym("n")]), body])
+  let (_, env1) = eval(defn_expr, env0)
+  let (r5, _)   = eval(LList([LSym("fact"), LNum(5)]), env1)
+  let (r1, _)   = eval(LList([LSym("fact"), LNum(1)]), env1)
+  assert_eq(lval_show(r5), "120")
+  assert_eq(lval_show(r1), "1")
 }

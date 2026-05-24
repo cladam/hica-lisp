@@ -1,0 +1,25 @@
+; List operations using car, cdr, cons, length
+(def nums (list 1 2 3 4 5))
+(println (car nums))
+(println (cdr nums))
+(println (length nums))
+
+(defn sum (xs)
+  (if (= (length xs) 0) 0 (+ (car xs) (sum (cdr xs)))))
+(println (sum nums))
+
+(defn my_map (f xs)
+  (if (= (length xs) 0)
+    (list)
+    (cons (f (car xs)) (my_map f (cdr xs)))))
+(defn square (x) (* x x))
+(println (my_map square nums))
+
+(defn my_filter (pred xs)
+  (if (= (length xs) 0)
+    (list)
+    (if (pred (car xs))
+      (cons (car xs) (my_filter pred (cdr xs)))
+      (my_filter pred (cdr xs)))))
+(defn even (n) (= (- n (* (/ n 2) 2)) 0))
+(println (my_filter even nums))
