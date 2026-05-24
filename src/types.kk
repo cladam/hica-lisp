@@ -192,7 +192,7 @@ fun hc_removeprefix(s : string, pre : string) : string
   if s.starts-with(pre).is-just then s.list.drop(pre.count).string else s
 
 // .hc:15
-fun hc_assoc(pairs : list<(string, lval)>, key : string)
+pub fun hc_assoc(pairs : list<(string, lval)>, key : string)
   match pairs
     Nil ->
       Nothing
@@ -200,7 +200,7 @@ fun hc_assoc(pairs : list<(string, lval)>, key : string)
       if (k == key) then Just(v) else hc_assoc(rest, key)
 
 // .hc:22
-fun hc_env_get(e : env, key : string)
+pub fun hc_env_get(e : env, key : string)
   match e
     EmptyEnv ->
       LNil
@@ -212,7 +212,7 @@ fun hc_env_get(e : env, key : string)
           hc_env_get(parent, key)
 
 // .hc:31
-fun hc_env_set(e : env, key : string, v : lval) : env
+pub fun hc_env_set(e : env, key : string, v : lval) : env
   match e
     EmptyEnv ->
       Env([(key, v)], EmptyEnv)
