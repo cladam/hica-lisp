@@ -1,5 +1,6 @@
 import "./types"
 import "./ast"
+import "./builtins"
 import "./parser"
 import "./tokeniser"
 
@@ -89,14 +90,6 @@ pub fun eval_let(bindings: list<LVal>, body: LVal, env: Env) : (LVal, Env) =>
     _ => (LNil, env)  // malformed let — skip
   }
 
-// Everything is truthy except false and nil
-pub fun is_truthy(v: LVal) : bool =>
-  match v {
-    LBool(b) => b,
-    LNil     => false,
-    _        => true
-  }
-
 pub fun eval_if(cond_expr: LVal, then_expr: LVal, else_expr: LVal, env: Env) : (LVal, Env) {
   let (cond_val, env2) = eval(cond_expr, env)
   if is_truthy(cond_val) {
@@ -154,10 +147,6 @@ pub fun eval_call(func: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
   let (arg_vals, env3) = eval_args(args, env2)
   apply(f, arg_vals, env3)
 }
-
-// Stub — will dispatch to builtins.hc once that module is added
-pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
-  (LStr("error: unknown builtin " + name), env)
 
 // use is stubbed until we have a module registry
 pub fun eval_use(mod_name: string, env: Env) : (LVal, Env) => (LNil, env)

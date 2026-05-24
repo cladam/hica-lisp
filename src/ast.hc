@@ -10,3 +10,11 @@ pub type LVal {
   LBuiltin(name: string),
   LNil
 }
+
+// Everything is truthy except false and nil
+pub fun is_truthy(v: LVal) : bool =>
+  match v {
+    LBool(b) => b,
+    LNil     => false,
+    _        => true
+  }
