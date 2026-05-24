@@ -4,9 +4,9 @@
 
 (defn fizzbuzz (n)
   (cond
-    (= (mod n 15) 0) 15
-    (= (mod n 3)  0) 3
-    (= (mod n 5)  0) 5
+    (= (mod n 15) 0) "fizzbuzz"
+    (= (mod n 3)  0) "fizz"
+    (= (mod n 5)  0) "buzz"
     true n))
 
 (defn loop (i max)

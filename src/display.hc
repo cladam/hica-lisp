@@ -2,7 +2,7 @@
 import "./ast"
 import "./types"
 
-// Convert any LVal to its printed representation
+// Convert any LVal to its printed representation (strings get quotes — Haskell-style show)
 pub fun lval_show(v: LVal) : string =>
   match v {
     LNum(n)            => show(n),
@@ -13,6 +13,13 @@ pub fun lval_show(v: LVal) : string =>
     LList(items)       => "(" + join(map(items, lval_show), " ") + ")",
     LBuiltin(name)     => "#<builtin:" + name + ">",
     LFun(fname, params, _, _) => if fname == "" { "#<fn(" + join(params, " ") + ")>" } else { "#<fn:" + fname + "(" + join(params, " ") + ")>" }
+  }
+
+// Display a value for human output — strings printed without surrounding quotes
+pub fun lval_display(v: LVal) : string =>
+  match v {
+    LStr(s) => s,
+    _       => lval_show(v)
   }
 
 test "show primitives" {

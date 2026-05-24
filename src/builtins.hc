@@ -86,12 +86,18 @@ pub fun builtin_length(args: list<LVal>) : LVal =>
     _              => LStr("error: length expects a list")
   }
 
-// Local recursive helper — avoids passing lval_show as a higher-order value cross-file,
+// Local recursive helpers — avoids passing functions as higher-order values cross-file,
 // which breaks Hica's div-effect propagation
 pub fun show_all(args: list<LVal>) : string =>
   match args {
     []          => "",
     [v, ..rest] => lval_show(v) + show_all(rest)
+  }
+
+pub fun display_all(args: list<LVal>) : string =>
+  match args {
+    []          => "",
+    [v, ..rest] => lval_display(v) + display_all(rest)
   }
 
 pub fun builtin_str(args: list<LVal>) : LVal =>
@@ -102,7 +108,7 @@ pub fun builtin_str(args: list<LVal>) : LVal =>
 
 // println is side-effectful so needs a block body rather than an inline match arm
 pub fun builtin_println(args: list<LVal>, env: Env) : (LVal, Env) {
-  println(show_all(args))
+  println(display_all(args))
   (LNil, env)
 }
 
