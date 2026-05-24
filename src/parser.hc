@@ -1,6 +1,7 @@
 import "./ast"
 import "./types"
 
+// Entry point for recursive-descent parsing — consumes one expression and returns the remainder
 pub fun parse_tokens(tokens: list<string>) : (LVal, list<string>) =>
   match tokens {
     []              => (LNil, []),
@@ -27,6 +28,7 @@ pub fun parse_list(tokens: list<string>, acc: list<LVal>) : (LVal, list<string>)
     }
   }
 
+// Classify a single token as a number, boolean, string literal, or symbol
 pub fun parse_atom(tok: string) : LVal =>
   match parse_int(tok) {
     Some(n) => LNum(n),
