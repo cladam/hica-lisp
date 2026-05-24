@@ -1,5 +1,7 @@
 .koka
 .hica
+.DS_Store
+src/.DS_Store
 
 docs/building-lisp-in-hica.md
 
