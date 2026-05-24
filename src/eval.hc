@@ -112,13 +112,9 @@ pub fun eval_def(name: string, val_expr: LVal, env: Env) : (LVal, Env) {
   (v, env_set(env2, name, v))
 }
 
-// Extract symbol names from a parameter list like [LSym("x"), LSym("y")]
+// Extract symbol names from a parameter list — non-symbols are silently skipped
 pub fun extract_params(params: list<LVal>) : list<string> =>
-  match params {
-    []                   => [],
-    [LSym(name), ..rest] => [name] + extract_params(rest),
-    [_, ..rest]          => extract_params(rest)
-  }
+  flat_map(params, (p) => match p { LSym(name) => [name], _ => [] })
 
 // Capture the current env as a closure
 pub fun eval_lambda(params: list<LVal>, body: LVal, env: Env) : (LVal, Env) {
@@ -137,15 +133,9 @@ pub fun eval_args(args: list<LVal>, env: Env) : (list<LVal>, Env) =>
     }
   }
 
-// Bind params to evaluated args in a new child scope chained to the closure env
+// Bind params to evaluated args — zip pairs them up, fold threads them into the env
 pub fun bind_params(params: list<string>, args: list<LVal>, env: Env) : Env =>
-  match params {
-    [] => env,
-    [p, ..ps] => match args {
-      []               => env,
-      [a, ..args_rest] => bind_params(ps, args_rest, env_set(env, p, a))
-    }
-  }
+  fold(zip(params, args), env, (e, pair) => match pair { (p, a) => env_set(e, p, a) })
 
 // Apply a callable to evaluated arguments
 pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) =>

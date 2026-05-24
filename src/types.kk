@@ -191,32 +191,22 @@ fun hc_center(s : string, width : int, ch : string)
 fun hc_removeprefix(s : string, pre : string) : string
   if s.starts-with(pre).is-just then s.list.drop(pre.count).string else s
 
-// .hc:15
-pub fun hc_assoc(pairs : list<(string, lval)>, key : string)
-  match pairs
-    Nil ->
-      Nothing
-    Cons((k, v), rest) ->
-      if (k == key) then Just(v) else hc_assoc(rest, key)
-
-// .hc:22
+// .hc:10
 pub fun hc_env_get(e : env, key : string)
   match e
     EmptyEnv ->
       LNil
     Env(bindings, parent) ->
-      match hc_assoc(bindings, key)
+      match (match bindings.find(fn((hc__k, _)) hc__k == key) { Just((_, hc__v)) -> Just(hc__v); Nothing -> Nothing })
         Just(v) ->
           v
         Nothing ->
           hc_env_get(parent, key)
 
-// .hc:31
+// .hc:19
 pub fun hc_env_set(e : env, key : string, v : lval) : env
   match e
     EmptyEnv ->
       Env([(key, v)], EmptyEnv)
     Env(bs, parent) ->
-      Env(([(key, v)] ++ filter(bs, fn(p) match p
-        (k, _) ->
-          (k != key))), parent)
+      Env((if bs.any(fn((hc__k, _)) hc__k == key) then bs.map(fn((hc__k, hc__v)) if hc__k == key then (key, v) else (hc__k, hc__v)) else bs ++ [(key, v)]), parent)
