@@ -4,7 +4,7 @@ module ast
 fun hc-assert( b : bool ) : exn ()
   if !b then throw("assertion failed")
 
-type lval
+pub type lval
   LNum(n : int)
   LSym(name : string)
   LStr(s : string)
@@ -14,7 +14,7 @@ type lval
   LBuiltin(name : string)
   LNil
 
-fun lval/show(v : lval) : div string
+pub fun lval/show(v : lval) : div string
   match v
     LNum(n) -> "LNum(" ++ n.show ++ ")"
     LSym(name) -> "LSym(" ++ name ++ ")"

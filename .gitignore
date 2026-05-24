@@ -5,5 +5,11 @@ src/.DS_Store
 
 docs/building-lisp-in-hica.md
 
+src/*
+!src/*.hc
+
+tests/*
+!tests/*.hc
+
 # tbdflow intent log (local-only, never committed)
 .tbdflow-intent.json

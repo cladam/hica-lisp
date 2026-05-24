@@ -191,7 +191,7 @@ fun hc_center(s : string, width : int, ch : string)
 fun hc_removeprefix(s : string, pre : string) : string
   if s.starts-with(pre).is-just then s.list.drop(pre.count).string else s
 
-// .hc:7
+// .hc:15
 fun hc_assoc(pairs : list<(string, lval)>, key : string)
   match pairs
     Nil ->
@@ -199,7 +199,7 @@ fun hc_assoc(pairs : list<(string, lval)>, key : string)
     Cons((k, v), rest) ->
       if (k == key) then Just(v) else hc_assoc(rest, key)
 
-// .hc:13
+// .hc:22
 fun hc_env_get(e : env, key : string)
   match e
     EmptyEnv ->
@@ -211,7 +211,7 @@ fun hc_env_get(e : env, key : string)
         Nothing ->
           hc_env_get(parent, key)
 
-// .hc:21
+// .hc:31
 fun hc_env_set(e : env, key : string, v : lval) : env
   match e
     EmptyEnv ->
