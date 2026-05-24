@@ -112,6 +112,28 @@ pub fun builtin_println(args: list<LVal>, env: Env) : (LVal, Env) {
   (LNil, env)
 }
 
+// (write-file path content) — write a string to disk; returns nil or error string
+pub fun builtin_write_file(args: list<LVal>, env: Env) : (LVal, Env) =>
+  match args {
+    [LStr(path), LStr(content)] =>
+      match write_file(path, content) {
+        Ok(_)      => (LNil, env),
+        Err(msg)   => (LStr("error: " + msg), env)
+      },
+    _ => (LStr("error: write-file expects (path content)"), env)
+  }
+
+// (exec cmd) — run a shell command, return stdout trimmed; error string on failure
+pub fun builtin_exec(args: list<LVal>, env: Env) : (LVal, Env) =>
+  match args {
+    [LStr(cmd)] =>
+      match exec(cmd) {
+        Ok(out)  => (LStr(trim(out)), env),
+        Err(msg) => (LStr("error: " + msg), env)
+      },
+    _ => (LStr("error: exec expects (cmd)"), env)
+  }
+
 // Dispatch — maps a builtin name to its implementation
 pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
   match name {
@@ -133,8 +155,10 @@ pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
     "list"    => (LList(args), env),
     "length"  => (builtin_length(args), env),
     "str"     => (builtin_str(args), env),
-    "println" => builtin_println(args, env),
-    _         => (LStr("error: unknown builtin " + name), env)
+    "println"    => builtin_println(args, env),
+    "write-file" => builtin_write_file(args, env),
+    "exec"       => builtin_exec(args, env),
+    _            => (LStr("error: unknown builtin " + name), env)
   }
 
 // Build the initial environment with all builtins pre-registered
@@ -142,7 +166,8 @@ pub fun make_env() : Env {
   let names = ["+", "-", "*", "/", "=", "<", ">", "<=", ">=",
                "not", "and", "or",
                "car", "cdr", "cons", "list", "length",
-               "println", "str"]
+               "println", "str",
+               "write-file", "exec"]
   fold(names, EmptyEnv, (e, name) => env_set(e, name, LBuiltin(name)))
 }
 

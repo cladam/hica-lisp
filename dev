@@ -1,0 +1,19 @@
+#!/usr/bin/env zsh
+# dev — thin wrapper that routes hica commands through the local hica build
+# Usage: ./dev check src/foo.hc
+#        ./dev binary hilisp        # build binary via koka debug mode (avoids cli.kki release bug)
+#        ./dev run src/main.hc -- args...
+#        ./dev test src/foo.hc
+
+HICA=/Users/claes.adamsson/cladam/code/hica-ecosystem/hica/hica
+STDLIB=/Users/claes.adamsson/.hica/stdlib
+
+# 'binary <output>' — regenerate .kk via hica build then compile with koka debug mode
+if [[ "$1" == "binary" ]]; then
+  out="${2:-hilisp}"
+  "$HICA" build 2>&1 | grep -v "koka failed"   # regenerate .kk files; ignore koka step failure
+  koka -isrc "-i$STDLIB" --optimize=0 src/main.kk -o "$out" && chmod +x "$out"
+  exit $?
+fi
+
+exec "$HICA" "$@"
