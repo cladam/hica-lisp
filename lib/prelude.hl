@@ -1,0 +1,111 @@
+; HiLisp prelude — standard utility library
+; Load with:  ./hilisp lib/prelude.hl your-program.hl
+
+; ── list ────────────────────────────────────────────────────────────────
+
+; (range lo hi) → (lo lo+1 ... hi-1)
+; e.g. (range 0 5) → (0 1 2 3 4)
+(defn range (lo hi)
+  (if (>= lo hi) (list) (cons lo (range (+ lo 1) hi))))
+
+; (take n xs) → first n elements
+(defn take (n xs)
+  (if (or (<= n 0) (= (length xs) 0))
+    (list)
+    (cons (car xs) (take (- n 1) (cdr xs)))))
+
+; (drop n xs) → skip first n elements
+(defn drop (n xs)
+  (if (or (<= n 0) (= (length xs) 0))
+    xs
+    (drop (- n 1) (cdr xs))))
+
+; (concat xs ys) → append two lists
+(defn concat (xs ys)
+  (if (= (length xs) 0)
+    ys
+    (cons (car xs) (concat (cdr xs) ys))))
+
+; (reverse xs) → reversed list
+(defn reverse_acc (xs acc)
+  (if (= (length xs) 0)
+    acc
+    (reverse_acc (cdr xs) (cons (car xs) acc))))
+(defn reverse (xs) (reverse_acc xs (list)))
+
+; (nth n xs) → element at index n (0-based)
+(defn nth (n xs)
+  (if (= n 0)
+    (car xs)
+    (nth (- n 1) (cdr xs))))
+
+; (last xs) → last element
+(defn last (xs)
+  (if (= (length (cdr xs)) 0)
+    (car xs)
+    (last (cdr xs))))
+
+; (flatten xs) → flatten one level of nesting
+(defn flatten (xs)
+  (if (= (length xs) 0)
+    (list)
+    (concat (car xs) (flatten (cdr xs)))))
+
+; ── higher-order ────────────────────────────────────────────────────────
+
+; (fold f acc xs) → left fold — (fold + 0 (list 1 2 3)) → 6
+(defn fold (f acc xs)
+  (if (= (length xs) 0)
+    acc
+    (fold f (f acc (car xs)) (cdr xs))))
+
+; (any pred xs) → true if any element satisfies pred
+(defn any (pred xs)
+  (if (= (length xs) 0)
+    false
+    (if (pred (car xs)) true (any pred (cdr xs)))))
+
+; (all pred xs) → true if every element satisfies pred
+(defn all (pred xs)
+  (if (= (length xs) 0)
+    true
+    (if (pred (car xs)) (all pred (cdr xs)) false)))
+
+; (zip-with f xs ys) → apply f to corresponding pairs
+(defn zip_with (f xs ys)
+  (if (or (= (length xs) 0) (= (length ys) 0))
+    (list)
+    (cons (f (car xs) (car ys)) (zip_with f (cdr xs) (cdr ys)))))
+
+; (zip xs ys) → list of 2-element lists
+(defn zip (xs ys)
+  (zip_with (fn (x y) (list x y)) xs ys))
+
+; ── math ────────────────────────────────────────────────────────────────
+
+; (abs n) → absolute value
+(defn abs (n) (if (< n 0) (- 0 n) n))
+
+; (mod a b) → integer modulo  (e.g. (mod 17 5) → 2)
+(defn mod (a b) (- a (* b (/ a b))))
+
+; (max2 a b) → larger of two numbers
+(defn max2 (a b) (if (> a b) a b))
+
+; (min2 a b) → smaller of two numbers
+(defn min2 (a b) (if (< a b) a b))
+
+; (sum xs) → sum of a list of numbers
+(defn sum (xs) (fold + 0 xs))
+
+; (product xs) → product of a list of numbers
+(defn product (xs) (fold * 1 xs))
+
+; (clamp n lo hi) → n constrained to [lo, hi]
+(defn clamp (n lo hi) (max2 lo (min2 n hi)))
+
+; ── string ──────────────────────────────────────────────────────────────
+
+; (repeat-str s n) → s concatenated n times
+(defn repeat_str (s n)
+  (if (<= n 0) "" (str s (repeat_str s (- n 1)))))

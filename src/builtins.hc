@@ -102,8 +102,8 @@ pub fun display_all(args: list<LVal>) : string =>
 
 pub fun builtin_str(args: list<LVal>) : LVal =>
   match args {
-    [v] => LStr(lval_show(v)),
-    _   => LStr(show_all(args))
+    [v] => LStr(lval_display(v)),
+    _   => LStr(display_all(args))
   }
 
 // println is side-effectful so needs a block body rather than an inline match arm
