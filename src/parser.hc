@@ -38,3 +38,29 @@ pub fun parse_atom(tok: string) : LVal =>
       else if starts_with(tok, "\"") { LStr(tok[1:str_length(tok) - 1]) }
       else { LSym(tok) }
   }
+
+test "parse_atom: numbers and symbols" {
+  assert(match parse_atom("42") { LNum(n) => n == 42, _ => false })
+  assert(match parse_atom("foo") { LSym(s) => s == "foo", _ => false })
+}
+
+test "parse_atom: booleans" {
+  let t = match parse_atom("true")  { LBool(b) => b == true,  _ => false }
+  let f = match parse_atom("false") { LBool(b) => b == false, _ => false }
+  assert(t)
+  assert(f)
+}
+
+test "parse_tokens: parses a list and consumes closing paren" {
+  let (v, rest) = parse_tokens(["(", "+", "1", "2", ")"])
+  let is_list   = match v { LList(_) => true, _ => false }
+  assert_eq(rest, [])
+  assert(is_list)
+}
+
+test "parse_tokens: quote shorthand expands to (quote x)" {
+  let (v, rest) = parse_tokens(["'", "x"])
+  let is_quote  = match v { LList([LSym(q), LSym(_)]) => q == "quote", _ => false }
+  assert_eq(rest, [])
+  assert(is_quote)
+}

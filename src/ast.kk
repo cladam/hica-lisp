@@ -25,6 +25,15 @@ pub fun lval/show(v : lval) : div string
     LBuiltin(name) -> "LBuiltin(" ++ name ++ ")"
     LNil -> "LNil"
 
+pub type env
+  Env(bindings : list<(string, lval)>, parent : env)
+  EmptyEnv
+
+pub fun env/show(v : env) : div string
+  match v
+    Env(bindings, parent) -> "Env(" ++ bindings.show ++ ", " ++ env/show(parent) ++ ")"
+    EmptyEnv -> "EmptyEnv"
+
 fun hc_abs(n : int)
   if (n < 0) then (0 - n) else n
 
@@ -200,3 +209,13 @@ fun hc_center(s : string, width : int, ch : string)
 
 fun hc_removeprefix(s : string, pre : string) : string
   if s.starts-with(pre).is-just then s.list.drop(pre.count).string else s
+
+// .hc:23
+pub fun hc_is_truthy(v : lval) : bool
+  match v
+    LBool(b) ->
+      b
+    LNil ->
+      False
+    _ ->
+      True

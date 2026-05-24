@@ -6,15 +6,6 @@ import ast
 fun hc-assert( b : bool ) : exn ()
   if !b then throw("assertion failed")
 
-type env
-  Env(bindings : list<(string, lval)>, parent : env)
-  EmptyEnv
-
-fun env/show(v : env) : div string
-  match v
-    Env(bindings, parent) -> "Env(" ++ bindings.show ++ ", " ++ env/show(parent) ++ ")"
-    EmptyEnv -> "EmptyEnv"
-
 fun hc_abs(n : int)
   if (n < 0) then (0 - n) else n
 
@@ -191,7 +182,7 @@ fun hc_center(s : string, width : int, ch : string)
 fun hc_removeprefix(s : string, pre : string) : string
   if s.starts-with(pre).is-just then s.list.drop(pre.count).string else s
 
-// .hc:10
+// .hc:5
 pub fun hc_env_get(e : env, key : string)
   match e
     EmptyEnv ->
@@ -203,7 +194,7 @@ pub fun hc_env_get(e : env, key : string)
         Nothing ->
           hc_env_get(parent, key)
 
-// .hc:19
+// .hc:14
 pub fun hc_env_set(e : env, key : string, v : lval) : env
   match e
     EmptyEnv ->

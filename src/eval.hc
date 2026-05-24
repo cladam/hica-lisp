@@ -1,6 +1,7 @@
 import "./types"
 import "./ast"
 import "./builtins"
+import "./display"
 import "./parser"
 import "./tokeniser"
 
@@ -107,7 +108,11 @@ pub fun eval_def(name: string, val_expr: LVal, env: Env) : (LVal, Env) {
 
 // Extract symbol names from a parameter list — non-symbols are silently skipped
 pub fun extract_params(params: list<LVal>) : list<string> =>
-  flat_map(params, (p) => match p { LSym(name) => [name], _ => [] })
+  match params {
+    [] => [],
+    [LSym(name), ..rest] => [name] + extract_params(rest),
+    [_, ..rest] => extract_params(rest)
+  }
 
 // Capture the current env as a closure
 pub fun eval_lambda(params: list<LVal>, body: LVal, env: Env) : (LVal, Env) {
@@ -127,8 +132,11 @@ pub fun eval_args(args: list<LVal>, env: Env) : (list<LVal>, Env) =>
   }
 
 // Bind params to evaluated args — zip pairs them up, fold threads them into the env
+pub fun bind_one(e: Env, pair: (string, LVal)) : Env =>
+  match pair { (p, a) => env_set(e, p, a) }
+
 pub fun bind_params(params: list<string>, args: list<LVal>, env: Env) : Env =>
-  fold(zip(params, args), env, (e, pair) => match pair { (p, a) => env_set(e, p, a) })
+  fold(zip(params, args), env, bind_one)
 
 // Apply a callable to evaluated arguments
 pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) =>
@@ -150,3 +158,40 @@ pub fun eval_call(func: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
 
 // use is stubbed until we have a module registry
 pub fun eval_use(mod_name: string, env: Env) : (LVal, Env) => (LNil, env)
+
+test "eval self-evaluating forms" {
+  let env = make_env()
+  let (n, _) = eval(LNum(42), env)
+  let (s, _) = eval(LStr("hi"), env)
+  assert_eq(lval_show(n), "42")
+  assert_eq(lval_show(s), "\"hi\"")
+}
+
+test "eval arithmetic via builtins" {
+  let env = make_env()
+  let (r, _) = eval(LList([LSym("+"), LNum(2), LNum(3)]), env)
+  assert_eq(lval_show(r), "5")
+}
+
+test "eval if branches" {
+  let env = make_env()
+  let (r1, _) = eval(LList([LSym("if"), LBool(true),  LNum(1), LNum(2)]), env)
+  let (r2, _) = eval(LList([LSym("if"), LBool(false), LNum(1), LNum(2)]), env)
+  assert_eq(lval_show(r1), "1")
+  assert_eq(lval_show(r2), "2")
+}
+
+test "eval def and symbol lookup" {
+  let env = make_env()
+  let (_, env2) = eval(LList([LSym("def"), LSym("x"), LNum(10)]), env)
+  let (r, _)    = eval(LSym("x"), env2)
+  assert_eq(lval_show(r), "10")
+}
+
+test "eval lambda definition and call" {
+  let env = make_env()
+  let fn_expr  = LList([LSym("fn"), LList([LSym("x")]), LList([LSym("*"), LSym("x"), LNum(2)])])
+  let (_, env2) = eval(LList([LSym("def"), LSym("double"), fn_expr]), env)
+  let (r, _)    = eval(LList([LSym("double"), LNum(5)]), env2)
+  assert_eq(lval_show(r), "10")
+}
