@@ -65,6 +65,29 @@ jobs:
             echo "$(basename $f): $result"
           done
 
+      - name: Build hilisp binary
+        shell: bash
+        continue-on-error: ${{ runner.os == 'Windows' }}
+        run: |
+          STDLIB="$HOME/.hica/stdlib"
+          # Regenerate .kk files from .hc sources; ignore koka step in hica build
+          hica build 2>&1 | grep -v "koka failed" || true
+          # Compile with koka (debug mode avoids cli.kki release-build bug)
+          #koka -isrc "-i$STDLIB" --optimize=0 src/main.kk -o hilisp
+          chmod +x hilisp
+
+      - name: Run prelude tests
+        shell: bash
+        continue-on-error: ${{ runner.os == 'Windows' }}
+        env:
+          HILISP: ${{ runner.os == 'Windows' && './hilisp.exe' || './hilisp' }}
+        run: |
+          output=$($HILISP lib/prelude.hl lib/test-prelude.hl)
+          echo "$output"
+          # Fail the step if any tests failed
+          echo "$output" | grep -q "^failed: 0" \
+            || { echo "::error::Prelude tests failed — see output above"; exit 1; }
+
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: test
