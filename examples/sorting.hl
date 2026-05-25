@@ -1,0 +1,56 @@
+; Sorting — merge sort and insertion sort
+; Uses: take, drop, length, concat, map, filter, fold (from prelude)
+
+; ── merge sort ──────────────────────────────────────────────────────────
+
+(defn merge (xs ys)
+  (if (= (length xs) 0) ys
+    (if (= (length ys) 0) xs
+      (if (<= (car xs) (car ys))
+        (cons (car xs) (merge (cdr xs) ys))
+        (cons (car ys) (merge xs (cdr ys)))))))
+
+(defn msort (xs)
+  (if (<= (length xs) 1)
+    xs
+    (merge (msort (take (/ (length xs) 2) xs))
+           (msort (drop (/ (length xs) 2) xs)))))
+
+; ── insertion sort ──────────────────────────────────────────────────────
+
+(defn insert (x xs)
+  (if (= (length xs) 0)
+    (list x)
+    (if (<= x (car xs))
+      (cons x xs)
+      (cons (car xs) (insert x (cdr xs))))))
+
+(defn isort (xs)
+  (fold (fn (acc x) (insert x acc)) (list) xs))
+
+; ── demos ───────────────────────────────────────────────────────────────
+
+(def data (list 5 3 8 1 9 2 7 4 6))
+
+(println "merge sort:")
+(println (msort data))
+
+(println "insertion sort:")
+(println (isort data))
+
+; already sorted / reverse sorted edge cases
+(println (msort (list 1 2 3 4 5)))
+(println (msort (list 5 4 3 2 1)))
+(println (msort (list)))
+(println (msort (list 42)))
+
+; sort and then take the three smallest via prelude helpers
+(def sorted (msort data))
+(println "3 smallest:")
+(println (take 3 sorted))
+(println "3 largest:")
+(println (reverse (take 3 (reverse sorted))))
+
+; running minimums via scan + min2
+(println "running mins:")
+(println (cdr (scan min2 (car data) (cdr data))))

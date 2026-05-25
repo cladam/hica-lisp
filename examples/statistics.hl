@@ -1,0 +1,90 @@
+; Statistics — mean, median, min, max, range, stdev
+; Inspired by Carp's Statistics module
+; Uses: fold, map, filter, sum, product, msort, scan, zip-with (from prelude + sorting)
+
+; ── re-use merge sort from sorting.hl (loaded before this file) ─────────
+
+(defn s_merge (xs ys)
+  (if (= (length xs) 0) ys
+    (if (= (length ys) 0) xs
+      (if (<= (car xs) (car ys))
+        (cons (car xs) (s_merge (cdr xs) ys))
+        (cons (car ys) (s_merge xs (cdr ys)))))))
+
+(defn s_sort (xs)
+  (if (<= (length xs) 1)
+    xs
+    (s_merge (s_sort (take (/ (length xs) 2) xs))
+             (s_sort (drop (/ (length xs) 2) xs)))))
+
+; ── statistics ──────────────────────────────────────────────────────────
+
+(defn mean (xs)
+  (/ (sum xs) (length xs)))
+
+(defn median (xs)
+  (let (sorted (s_sort xs)
+        n      (length xs)
+        mid    (/ n 2))
+    (nth mid sorted)))
+
+(defn variance (xs)
+  (let (m    (mean xs)
+        devs (map (fn (x) (* (- x m) (- x m))) xs))
+    (/ (sum devs) (length xs))))
+
+; integer square root via Newton's method
+(defn isqrt_step (n g)
+  (if (<= (* g g) n)
+    (if (> (* (+ g 1) (+ g 1)) n) g (isqrt_step n (+ g 1)))
+    (isqrt_step n (/ (+ g (/ n g)) 2))))
+
+(defn isqrt (n)
+  (if (<= n 0) 0 (isqrt_step n 1)))
+
+(defn stdev (xs)
+  (isqrt (variance xs)))
+
+(defn data_min (xs)
+  (fold min2 (car xs) (cdr xs)))
+
+(defn data_max (xs)
+  (fold max2 (car xs) (cdr xs)))
+
+(defn data_range (xs)
+  (- (data_max xs) (data_min xs)))
+
+; ── demo ────────────────────────────────────────────────────────────────
+
+(def scores (list 72 88 95 61 79 83 91 67 74 88))
+
+(println "scores:")
+(println scores)
+(println "sorted:")
+(println (s_sort scores))
+(println "count:")
+(println (length scores))
+(println "sum:")
+(println (sum scores))
+(println "mean:")
+(println (mean scores))
+(println "median:")
+(println (median scores))
+(println "min:")
+(println (data_min scores))
+(println "max:")
+(println (data_max scores))
+(println "range:")
+(println (data_range scores))
+(println "variance:")
+(println (variance scores))
+(println "stdev (integer approx):")
+(println (stdev scores))
+
+; how many above mean?
+(println "above mean:")
+(println (count_if (fn (x) (> x (mean scores))) scores))
+
+; running totals (cumulative sum via scan)
+(println "cumulative sum:")
+(println (cdr (scan + 0 scores)))
