@@ -134,6 +134,27 @@ pub fun builtin_exec(args: list<LVal>, env: Env) : (LVal, Env) =>
     _ => (LStr("error: exec expects (cmd)"), env)
   }
 
+// (starts-with str prefix) — true if str begins with prefix
+pub fun builtin_starts_with(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s), LStr(pre)] => LBool(starts_with(s, pre)),
+    _                    => LStr("error: starts-with expects (str prefix)")
+  }
+
+// (lines str) — split str on newlines, return list of strings
+pub fun builtin_lines(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s)] => LList(map(split(s, "\n"), (ln) => LStr(ln))),
+    _         => LStr("error: lines expects a string")
+  }
+
+// (contains str sub) — true if str contains the substring sub
+pub fun builtin_contains(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s), LStr(sub)] => LBool(contains(s, sub)),
+    _                    => LStr("error: contains expects (str sub)")
+  }
+
 // Dispatch — maps a builtin name to its implementation
 pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
   match name {
@@ -156,9 +177,12 @@ pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
     "length"  => (builtin_length(args), env),
     "str"     => (builtin_str(args), env),
     "println"    => builtin_println(args, env),
-    "write-file" => builtin_write_file(args, env),
-    "exec"       => builtin_exec(args, env),
-    _            => (LStr("error: unknown builtin " + name), env)
+    "write-file"   => builtin_write_file(args, env),
+    "exec"         => builtin_exec(args, env),
+    "starts-with"  => (builtin_starts_with(args), env),
+    "lines"        => (builtin_lines(args), env),
+    "contains"     => (builtin_contains(args), env),
+    _              => (LStr("error: unknown builtin " + name), env)
   }
 
 // Build the initial environment with all builtins pre-registered
@@ -167,7 +191,8 @@ pub fun make_env() : Env {
                "not", "and", "or",
                "car", "cdr", "cons", "list", "length",
                "println", "str",
-               "write-file", "exec"]
+               "write-file", "exec",
+               "starts-with", "lines", "contains"]
   fold(names, EmptyEnv, (e, name) => env_set(e, name, LBuiltin(name)))
 }
 
