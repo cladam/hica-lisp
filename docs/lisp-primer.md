@@ -69,7 +69,7 @@ Use `fn` when you want to pass a function as a value, for example to `map` or `f
 ### Calling functions
 
 ```lisp
-(square 4)             ; call by name → 16
+(square 4)            ; call by name → 16
 ((fn (x) (* x x)) 4)  ; call immediately → 16
 ```
 
@@ -100,7 +100,7 @@ Always include a `true` branch at the end as a default.
 ```lisp
 (let (a 10
       b 20)
-  (+ a b))   ; → 30
+  (+ a b))   ; 30
 ```
 
 `let` takes a flat list of `name value` pairs and a body. Bindings are visible only
@@ -113,10 +113,10 @@ Lists are the core data structure in Lisp.
 ```lisp
 (def xs (list 1 2 3 4 5))
 
-(car xs)          ; → 1      — first element
-(cdr xs)          ; → (2 3 4 5) — everything after the first
-(cons 0 xs)       ; → (0 1 2 3 4 5) — prepend an element
-(length xs)       ; → 5
+(car xs)          ; 1      — first element
+(cdr xs)          ; (2 3 4 5) — everything after the first
+(cons 0 xs)       ; (0 1 2 3 4 5) — prepend an element
+(length xs)       ; 5
 ```
 
 `car` and `cdr` are historical names from the 50s, think of them as `head` and `tail`.
@@ -126,10 +126,10 @@ Lists are the core data structure in Lisp.
 Once you load `lib/prelude.hl`:
 
 ```lisp
-(range 0 5)                           ; → (0 1 2 3 4)
-(map (fn (x) (* x x)) (list 1 2 3))  ; → (1 4 9)
-(filter (fn (x) (> x 2)) (list 1 2 3 4))  ; → (3 4)
-(fold + 0 (list 1 2 3 4 5))          ; → 15
+(range 0 5)                               ; (0 1 2 3 4)
+(map (fn (x) (* x x)) (list 1 2 3))       ; (1 4 9)
+(filter (fn (x) (> x 2)) (list 1 2 3 4))  ; (3 4)
+(fold + 0 (list 1 2 3 4 5))               ; 15
 ```
 
 ## Sequencing `do`
@@ -167,7 +167,7 @@ HiLisp has no `while` or `for`. Use a recursive function:
 For accumulating a result over a list, prefer `fold` from the prelude over manual recursion:
 
 ```lisp
-(fold + 0 (list 1 2 3 4 5))   ; → 15
+(fold + 0 (list 1 2 3 4 5))   ; 15
 ```
 
 ## Quoting `'`
@@ -176,8 +176,8 @@ Normally `(foo 1 2)` calls `foo`. Sometimes you want the list itself, unevaluate
 Prefix with `'`:
 
 ```lisp
-'(1 2 3)       ; → the list (1 2 3), not a function call
-'hello         ; → the symbol hello, not a variable lookup
+'(1 2 3)       ; the list (1 2 3), not a function call
+'hello         ; the symbol hello, not a variable lookup
 ```
 
 ## Closures
@@ -189,7 +189,7 @@ Functions capture the environment where they were created:
   (fn (x) (+ x n)))   ; n is captured here
 
 (def add10 (make_adder 10))
-(println (add10 5))    ; → 15
+(println (add10 5))   ; 15
 ```
 
 This lets you create specialised functions from general ones — a core Lisp pattern.
