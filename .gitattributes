@@ -1,2 +1,3 @@
 # Map .hc files to Koka for GitHub language detection
 *.hc linguist-language=Koka
+*.hl linguist-language=Lisp
