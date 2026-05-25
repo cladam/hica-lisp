@@ -1,0 +1,181 @@
+; test-prelude.hl — regression tests for lib/prelude.hl
+; Run: ./hilisp lib/prelude.hl lib/test-prelude.hl
+;
+; Strategy: compare via (str ...) which calls lval_show — handles all types
+; including nested lists. Returns 1/0 per check; (def results (list ...))
+; evaluates all checks eagerly and collects counts for the summary.
+
+; ── tiny test harness ────────────────────────────────────────────────────
+
+(defn check (name expected actual)
+  (if (= (str expected) (str actual))
+    (do (println (str "PASS: " name)) 1)
+    (do (println (str "FAIL: " name))
+        (println (str "  expected: " (str expected)))
+        (println (str "  actual:   " (str actual)))
+        0)))
+
+; ── tests — collected in a list so we can count pass/fail ─────────────────
+
+(def results (list
+
+(check "range basic"        (list 0 1 2 3 4)    (range 0 5))
+(check "range empty"        (list)               (range 5 5))
+(check "range single"       (list 3)             (range 3 4))
+
+(check "take normal"        (list 1 2 3)         (take 3 (list 1 2 3 4 5)))
+(check "take zero"          (list)               (take 0 (list 1 2 3)))
+(check "take more than len" (list 1 2 3)         (take 9 (list 1 2 3)))
+
+(check "drop normal"        (list 4 5)           (drop 3 (list 1 2 3 4 5)))
+(check "drop zero"          (list 1 2 3)         (drop 0 (list 1 2 3)))
+(check "drop all"           (list)               (drop 9 (list 1 2 3)))
+
+(check "concat basic"       (list 1 2 3 4)       (concat (list 1 2) (list 3 4)))
+(check "concat left-empty"  (list 1 2)           (concat (list) (list 1 2)))
+(check "concat right-empty" (list 1 2)           (concat (list 1 2) (list)))
+
+(check "reverse basic"      (list 3 2 1)         (reverse (list 1 2 3)))
+(check "reverse single"     (list 1)             (reverse (list 1)))
+(check "reverse empty"      (list)               (reverse (list)))
+
+(check "nth 0"              1                    (nth 0 (list 1 2 3)))
+(check "nth 2"              3                    (nth 2 (list 1 2 3)))
+
+(check "last basic"         3                    (last (list 1 2 3)))
+(check "last single"        42                   (last (list 42)))
+
+(check "flatten basic"      (list 1 2 3 4)       (flatten (list (list 1 2) (list 3 4))))
+(check "flatten empty"      (list)               (flatten (list)))
+
+(check "contains yes"       true                 (contains 3 (list 1 2 3 4)))
+(check "contains no"        false                (contains 9 (list 1 2 3 4)))
+(check "contains empty"     false                (contains 1 (list)))
+
+(check "replicate basic"    (list 0 0 0)         (replicate 3 0))
+(check "replicate one"      (list 7)             (replicate 1 7))
+(check "replicate zero"     (list)               (replicate 0 99))
+
+(check "map squares"        (list 1 4 9)         (map square (list 1 2 3)))
+(check "map empty"          (list)               (map square (list)))
+
+(check "filter evens"       (list 2 4)           (filter even (list 1 2 3 4 5)))
+(check "filter none"        (list)               (filter even (list 1 3 5)))
+(check "filter all"         (list 2 4)           (filter even (list 2 4)))
+
+(check "fold sum"           15                   (fold + 0 (list 1 2 3 4 5)))
+(check "fold product"       24                   (fold * 1 (list 1 2 3 4)))
+(check "fold empty"         0                    (fold + 0 (list)))
+
+(check "any true"           true                 (any odd (list 2 4 5)))
+(check "any false"          false                (any odd (list 2 4 6)))
+(check "any empty"          false                (any odd (list)))
+
+(check "all true"           true                 (all even (list 2 4 6)))
+(check "all false"          false                (all even (list 2 3 4)))
+(check "all empty"          true                 (all even (list)))
+
+(check "zip basic"
+  (list (list 1 4) (list 2 5) (list 3 6))
+  (zip (list 1 2 3) (list 4 5 6)))
+(check "zip truncates"      (list (list 1 4))    (zip (list 1 2) (list 4)))
+(check "zip-with +"         (list 5 7 9)         (zip_with + (list 1 2 3) (list 4 5 6)))
+
+(check "take-while basic"   (list 1 3)           (take_while odd (list 1 3 4 5)))
+(check "take-while none"    (list)               (take_while odd (list 2 4 6)))
+(check "take-while all"     (list 1 3)           (take_while odd (list 1 3)))
+
+(check "drop-while basic"   (list 4 5)           (drop_while odd (list 1 3 4 5)))
+(check "drop-while none"    (list 2 4 6)         (drop_while odd (list 2 4 6)))
+(check "drop-while all"     (list)               (drop_while odd (list 1 3 5)))
+
+(check "flat-map"
+  (list 1 1 2 2 3 3)
+  (flat_map (fn (x) (list x x)) (list 1 2 3)))
+(check "flat-map empty"     (list)               (flat_map (fn (x) (list x)) (list)))
+
+(check "scan +"             (list 0 1 3 6)       (scan + 0 (list 1 2 3)))
+(check "scan empty"         (list 0)             (scan + 0 (list)))
+
+(check "windows 3"
+  (list (list 1 2 3) (list 2 3 4) (list 3 4 5))
+  (windows 3 (list 1 2 3 4 5)))
+(check "windows > len"      (list)               (windows 6 (list 1 2 3)))
+(check "windows exact"      (list (list 1 2 3))  (windows 3 (list 1 2 3)))
+
+(check "intersperse basic"  (list 1 0 2 0 3)     (intersperse 0 (list 1 2 3)))
+(check "intersperse single" (list 9)             (intersperse 0 (list 9)))
+(check "intersperse empty"  (list)               (intersperse 0 (list)))
+
+(check "partition evens"
+  (list (list 2 4) (list 1 3 5))
+  (partition even (list 1 2 3 4 5)))
+(check "partition all-match"
+  (list (list 2 4) (list))
+  (partition even (list 2 4)))
+(check "partition none-match"
+  (list (list) (list 1 3))
+  (partition even (list 1 3)))
+
+(check "find hit"           4                    (find (fn (x) (> x 3)) (list 1 2 3 4 5)))
+(check "find miss"          nil                  (find (fn (x) (> x 9)) (list 1 2 3)))
+(check "find empty"         nil                  (find odd (list)))
+
+(check "count-if basic"     3                    (count_if even (list 1 2 3 4 5 6)))
+(check "count-if zero"      0                    (count_if even (list 1 3 5)))
+
+(check "enumerate basic"
+  (list (list 0 10) (list 1 20) (list 2 30))
+  (enumerate (list 10 20 30)))
+(check "enumerate empty"    (list)               (enumerate (list)))
+
+(check "abs pos"            5                    (abs 5))
+(check "abs neg"            5                    (abs (- 0 5)))
+(check "abs zero"           0                    (abs 0))
+
+(check "mod basic"          2                    (mod 17 5))
+(check "mod exact"          0                    (mod 10 5))
+
+(check "max2"               7                    (max2 3 7))
+(check "min2"               3                    (min2 3 7))
+
+(check "sum basic"          15                   (sum (list 1 2 3 4 5)))
+(check "sum empty"          0                    (sum (list)))
+(check "product basic"      24                   (product (list 1 2 3 4)))
+(check "product empty"      1                    (product (list)))
+
+(check "clamp mid"          5                    (clamp 5 1 10))
+(check "clamp low"          1                    (clamp (- 0 5) 1 10))
+(check "clamp high"         10                   (clamp 99 1 10))
+
+(check "inc"                6                    (inc 5))
+(check "dec"                4                    (dec 5))
+
+(check "even yes"           true                 (even 4))
+(check "even no"            false                (even 3))
+(check "odd yes"            true                 (odd 7))
+(check "odd no"             false                (odd 8))
+
+(check "square"             25                   (square 5))
+(check "square zero"        0                    (square 0))
+
+(check "gcd basic"          6                    (gcd 48 18))
+(check "gcd coprime"        1                    (gcd 7 13))
+(check "gcd same"           9                    (gcd 9 9))
+
+(check "lcm basic"          12                   (lcm 4 6))
+(check "lcm coprime"        35                   (lcm 5 7))
+
+(check "join basic"         "a, b, c"            (join ", " (list "a" "b" "c")))
+(check "join single"        "only"               (join ", " (list "only")))
+(check "join empty"         ""                   (join ", " (list)))
+(check "join no-sep"        "abc"                (join "" (list "a" "b" "c")))
+
+)) ; end results
+
+; ── summary ──────────────────────────────────────────────────────────────
+
+(println "")
+(println (str "passed: " (str (sum results))))
+(println (str "failed: " (str (- (length results) (sum results)))))
+(println (str "total:  " (str (length results))))
