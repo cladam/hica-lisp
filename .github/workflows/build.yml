@@ -73,8 +73,10 @@ jobs:
 
       - name: Run prelude tests
         shell: bash
+        env:
+          HILISP: ${{ runner.os == 'Windows' && './hilisp.exe' || './hilisp' }}
         run: |
-          output=$(./hilisp lib/prelude.hl lib/test-prelude.hl)
+          output=$($HILISP lib/prelude.hl lib/test-prelude.hl)
           echo "$output"
           # Fail the step if any tests failed
           echo "$output" | grep -q "^failed: 0" \
