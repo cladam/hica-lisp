@@ -149,10 +149,19 @@ pub fun builtin_lines(args: list<LVal>) : LVal =>
   }
 
 // (contains str sub) — true if str contains the substring sub
-// Implemented via split to avoid ambiguity with list/contains in Koka
+// Uses a recursive helper to avoid the Koka 3.2.3 Perceus bug:
+// split(s, sub) generates `if sub.is-empty then ... else s.split(sub)`,
+// where Perceus drops `sub` after the condition, crashing the else branch.
+// Passing s and sub as explicit function parameters avoids the issue.
+pub fun str_has_sub(s: string, sub: string) : bool =>
+  if str_length(sub) == 0 { true }
+  else if str_length(s) < str_length(sub) { false }
+  else if starts_with(s, sub) { true }
+  else { str_has_sub(s[1:], sub) }
+
 pub fun builtin_contains(args: list<LVal>) : LVal =>
   match args {
-    [LStr(s), LStr(sub)] => LBool(length(split(s, sub)) > 1),
+    [LStr(s), LStr(sub)] => LBool(str_has_sub(s, sub)),
     _                    => LStr("error: contains expects (str sub)")
   }
 
