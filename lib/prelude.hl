@@ -104,6 +104,39 @@
 (defn zip (xs ys)
   (zip_with (fn (x y) (list x y)) xs ys))
 
+; (take-while pred xs) → leading elements while pred holds
+; e.g. (take-while odd '(1 3 4 5)) → (1 3)
+(defn take_while (pred xs)
+  (if (= (length xs) 0)
+    (list)
+    (if (pred (car xs))
+      (cons (car xs) (take_while pred (cdr xs)))
+      (list))))
+
+; (drop-while pred xs) → skip leading elements while pred holds
+; e.g. (drop-while odd '(1 3 4 5)) → (4 5)
+(defn drop_while (pred xs)
+  (if (= (length xs) 0)
+    (list)
+    (if (pred (car xs))
+      (drop_while pred (cdr xs))
+      xs)))
+
+; (flat-map f xs) → map f over xs then flatten one level
+; e.g. (flat-map (fn (x) (list x x)) '(1 2 3)) → (1 1 2 2 3 3)
+(defn flat_map (f xs)
+  (flatten (map f xs)))
+
+; (partition pred xs) → (list matching non-matching) — split xs in two
+; e.g. (partition even '(1 2 3 4 5)) → ((2 4) (1 3 5))
+(defn partition_acc (pred xs yes no)
+  (if (= (length xs) 0)
+    (list yes no)
+    (if (pred (car xs))
+      (partition_acc pred (cdr xs) (concat yes (list (car xs))) no)
+      (partition_acc pred (cdr xs) yes (concat no (list (car xs)))))))
+(defn partition (pred xs) (partition_acc pred xs (list) (list)))
+
 ; (find pred xs) → first element matching pred, or nil
 (defn find (pred xs)
   (if (= (length xs) 0)
