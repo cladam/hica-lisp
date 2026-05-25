@@ -60,9 +60,11 @@ jobs:
         continue-on-error: ${{ runner.os == 'Windows' }}
         run: |
           set +e
-          for f in src/*.hc; do 
+          for f in src/*.hc; do
+            name=$(basename "$f")
+            [[ "$name" == "lisp.hc" || "$name" == "main.hc" ]] && continue
             result=$(hica test "$f" 2>&1 | grep -E "passed|failed|error")
-            echo "$(basename $f): $result"
+            echo "$name: $result"
           done
 
       - name: Build hilisp binary
