@@ -127,6 +127,27 @@
 (defn flat_map (f xs)
   (flatten (map f xs)))
 
+; (scan f acc xs) → fold that keeps all intermediate values
+; e.g. (scan + 0 '(1 2 3)) → (0 1 3 6)
+(defn scan (f acc xs)
+  (if (= (length xs) 0)
+    (list acc)
+    (cons acc (scan f (f acc (car xs)) (cdr xs)))))
+
+; (windows n xs) → all contiguous sub-lists of length n
+; e.g. (windows 3 '(1 2 3 4 5)) → ((1 2 3) (2 3 4) (3 4 5))
+(defn windows (n xs)
+  (if (> n (length xs))
+    (list)
+    (cons (take n xs) (windows n (cdr xs)))))
+
+; (intersperse sep xs) → insert sep between every element
+; e.g. (intersperse 0 '(1 2 3)) → (1 0 2 0 3)
+(defn intersperse (sep xs)
+  (if (or (= (length xs) 0) (= (length (cdr xs)) 0))
+    xs
+    (cons (car xs) (cons sep (intersperse sep (cdr xs))))))
+
 ; (partition pred xs) → (list matching non-matching) — split xs in two
 ; e.g. (partition even '(1 2 3 4 5)) → ((2 4) (1 3 5))
 (defn partition_acc (pred xs yes no)
