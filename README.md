@@ -125,8 +125,7 @@ string utilities:
 ./hilisp lib/prelude.hl examples/sorting.hl
 ```
 
-See [docs/team-scripting-guide.md](docs/team-scripting-guide.md) for the full
-function reference.
+See [docs/hilisp-hica-guide.md](docs/hilisp-hica-guide.md) for the full function reference.
 
 ## Known limitations
 
