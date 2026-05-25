@@ -1,23 +1,19 @@
-# HiLisp Scripting Guide — Team Hica
+# HiLisp Scripting Guide for hica development
 
 *For contributors to the hica ecosystem who want to use HiLisp for scaffolding,
 automation, and dev scripts instead of bash.*
-
----
 
 ## Why HiLisp for hica work?
 
 HiLisp is built in hica. Maintaining it IS hica development — every HiLisp script
 you write exercises the compiler and gives you real-world feedback. Beyond that:
 
-- **No second language to install** — the `./hilisp` binary is in this repo
-- **Multi-file scripts** — load a library then your script, sharing one environment
-- **File I/O and shell exec** — enough to drive `hica check`, generate source files,
+- **No second language to install**: the `./hilisp` binary is in this repo
+- **Multi-file scripts**: load a library then your script, sharing one environment
+- **File I/O and shell exec**: enough to drive `hica check`, generate source files,
   and wire up build steps
-- **REPL for exploration** — `./hilisp` with no args drops you into an interactive
+- **REPL for exploration**: `./hilisp` with no args drops you into an interactive
   session
-
----
 
 ## Setup
 
@@ -104,9 +100,7 @@ Use `str` to concatenate any number of values into a string:
 (println (str "hello" " " "world"))   ; → hello world
 ```
 
-String literals **can** contain spaces — the tokenizer handles them correctly.
-
----
+String literals **can** contain spaces - the tokenizer handles them correctly.
 
 ## Built-in functions
 
@@ -123,7 +117,7 @@ String literals **can** contain spaces — the tokenizer handles them correctly.
 
 ---
 
-## Standard library — `lib/prelude.hl`
+## Standard library `lib/prelude.hl`
 
 Load it as the first file argument:
 
@@ -174,8 +168,8 @@ Load it as the first file argument:
 
 ### String
 
-`(repeat_str s n)` — repeat string n times  
-`(join sep xs)` — concatenate a list of strings with a separator
+`(repeat_str s n)`: repeat string n times  
+`(join sep xs)`: concatenate a list of strings with a separator
 
 ### Tests
 
@@ -186,8 +180,6 @@ A 101-test regression suite lives at `lib/test-prelude.hl`:
 ```
 
 This is also run in CI after building the interpreter.
-
----
 
 ## Scripting patterns
 
@@ -233,8 +225,6 @@ All files passed to `./hilisp` share one environment, in order:
 
 Anything defined in an earlier file is visible to all later files.
 
----
-
 ## Known limitations
 
 | Limitation | Workaround |
@@ -243,8 +233,6 @@ Anything defined in an earlier file is visible to all later files.
 | `exec` command string can't contain spaces in parts | Build the command string with `str` |
 | No tail-call optimisation | Keep recursion depth small; use `fold` for iteration |
 | No file-system listing | Use `exec "ls ..."` and parse the output |
-
----
 
 ## Workflow: scripting a hica build step
 
