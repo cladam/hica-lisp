@@ -51,7 +51,30 @@
     (list)
     (concat (car xs) (flatten (cdr xs)))))
 
+; (contains x xs) → true if x is in xs (structural equality)
+(defn contains (x xs)
+  (if (= (length xs) 0)
+    false
+    (if (= x (car xs)) true (contains x (cdr xs)))))
+
+; (replicate n x) → list of n copies of x
+; e.g. (replicate 3 0) → (0 0 0)
+(defn replicate (n x)
+  (if (<= n 0) (list) (cons x (replicate (- n 1) x))))
+
 ; ── higher-order ────────────────────────────────────────────────────────
+
+; (map f xs) → apply f to every element
+(defn map (f xs)
+  (if (= (length xs) 0) (list)
+    (cons (f (car xs)) (map f (cdr xs)))))
+
+; (filter pred xs) → keep elements where pred is true
+(defn filter (pred xs)
+  (if (= (length xs) 0) (list)
+    (if (pred (car xs))
+      (cons (car xs) (filter pred (cdr xs)))
+      (filter pred (cdr xs)))))
 
 ; (fold f acc xs) → left fold — (fold + 0 (list 1 2 3)) → 6
 (defn fold (f acc xs)
@@ -81,6 +104,26 @@
 (defn zip (xs ys)
   (zip_with (fn (x y) (list x y)) xs ys))
 
+; (find pred xs) → first element matching pred, or nil
+(defn find (pred xs)
+  (if (= (length xs) 0)
+    nil
+    (if (pred (car xs))
+      (car xs)
+      (find pred (cdr xs)))))
+
+; (count-if pred xs) → number of elements satisfying pred
+(defn count_if (pred xs)
+  (fold (fn (acc x) (if (pred x) (+ acc 1) acc)) 0 xs))
+
+; (enumerate xs) → list of (index element) pairs, 0-based
+; e.g. (enumerate '(a b c)) → ((0 a) (1 b) (2 c))
+(defn enumerate_from (xs i)
+  (if (= (length xs) 0)
+    (list)
+    (cons (list i (car xs)) (enumerate_from (cdr xs) (+ i 1)))))
+(defn enumerate (xs) (enumerate_from xs 0))
+
 ; ── math ────────────────────────────────────────────────────────────────
 
 ; (abs n) → absolute value
@@ -104,8 +147,34 @@
 ; (clamp n lo hi) → n constrained to [lo, hi]
 (defn clamp (n lo hi) (max2 lo (min2 n hi)))
 
+; (inc n) / (dec n) → increment / decrement
+(defn inc (n) (+ n 1))
+(defn dec (n) (- n 1))
+
+; (even n) / (odd n) → parity checks
+(defn even (n) (= (mod n 2) 0))
+(defn odd  (n) (not (even n)))
+
+; (square n) → n * n
+(defn square (n) (* n n))
+
+; (gcd a b) → greatest common divisor (Euclidean algorithm)
+(defn gcd (a b) (if (= b 0) a (gcd b (mod a b))))
+
+; (lcm a b) → least common multiple
+(defn lcm (a b) (/ (* a b) (gcd a b)))
+
 ; ── string ──────────────────────────────────────────────────────────────
 
 ; (repeat-str s n) → s concatenated n times
 (defn repeat_str (s n)
   (if (<= n 0) "" (str s (repeat_str s (- n 1)))))
+
+; (join sep xs) → join list of strings with separator
+; e.g. (join ", " (list "a" "b" "c")) → "a, b, c"
+(defn join (sep xs)
+  (if (= (length xs) 0)
+    ""
+    (fold (fn (acc x) (str acc (str sep x)))
+          (str (car xs))
+          (cdr xs))))
