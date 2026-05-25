@@ -113,7 +113,7 @@ Lists are the core data structure in Lisp.
 ```lisp
 (def xs (list 1 2 3 4 5))
 
-(car xs)          ; 1      — first element
+(car xs)          ; 1 — first element
 (cdr xs)          ; (2 3 4 5) — everything after the first
 (cons 0 xs)       ; (0 1 2 3 4 5) — prepend an element
 (length xs)       ; 5
@@ -192,7 +192,7 @@ Functions capture the environment where they were created:
 (println (add10 5))   ; 15
 ```
 
-This lets you create specialised functions from general ones — a core Lisp pattern.
+This lets you create specialised functions from general ones, a core Lisp pattern.
 
 ## Putting it together, a working example
 
@@ -220,6 +220,6 @@ This lets you create specialised functions from general ones — a core Lisp pat
 ## Next steps
 
 - Browse the `examples/` directory, each file is a self-contained HiLisp program
-- Read [team-scripting-guide.md](team-scripting-guide.md) for the full prelude
+- Read [hilisp-hica-guide.md](hilisp-hica-guide.md) for the full prelude
   function reference
 - Open the REPL (`./hilisp`) and experiment interactively
