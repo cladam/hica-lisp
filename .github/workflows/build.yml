@@ -66,9 +66,10 @@ jobs:
           done
 
       - name: Build hilisp binary
-        if: runner.os != 'Windows'
         shell: bash
-        run: hica build -o hilisp
+        run: |
+          mkdir -p "$HOME/.hica/stdlib"
+          hica build -o hilisp
 
       - name: Run prelude tests
         if: runner.os != 'Windows'
