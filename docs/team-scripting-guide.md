@@ -29,6 +29,16 @@ From the `hica-lisp` repo root:
 ./hilisp lib/prelude.hl myscript.hl          # load stdlib, then run script
 ```
 
+The `examples/` directory has ready-to-run programs that show the full range of the
+language and prelude:
+
+```sh
+./hilisp lib/prelude.hl examples/sorting.hl       # merge sort + insertion sort
+./hilisp lib/prelude.hl examples/statistics.hl    # mean, median, variance, stdev
+./hilisp lib/prelude.hl examples/higher_order.hl  # scan, windows, flat_map, partition
+./hilisp examples/fizzbuzz.hl                      # cond, loops (no prelude needed)
+```
+
 Use `./dev binary hilisp` to rebuild the interpreter from source after changing
 interpreter code.
 
@@ -86,14 +96,15 @@ HiLisp is dynamically typed. All syntax is s-expressions: `(function arg1 arg2)`
 
 ### String building
 
-Use `str` to concatenate — string literals **cannot contain spaces** (tokenizer
-limitation), so build them from parts:
+Use `str` to concatenate any number of values into a string:
 
 ```lisp
 (def path "/tmp/out.txt")
-(println (str "writing to " path))   ; ← space inside literal: DON'T
-(println (str "writing-to" ":" path))  ; ← build with str: DO
+(println (str "writing to " path))
+(println (str "hello" " " "world"))   ; → hello world
 ```
+
+String literals **can** contain spaces — the tokenizer handles them correctly.
 
 ---
 
@@ -127,29 +138,54 @@ Load it as the first file argument:
 | `(range lo hi)` | `(range 0 5)` → `(0 1 2 3 4)` |
 | `(take n xs)` | `(take 2 (list 10 20 30))` → `(10 20)` |
 | `(drop n xs)` | `(drop 2 (list 10 20 30))` → `(30)` |
+| `(take_while pred xs)` | elements from front while pred holds |
+| `(drop_while pred xs)` | skip elements from front while pred holds |
 | `(concat xs ys)` | append two lists |
 | `(reverse xs)` | `(reverse (list 1 2 3))` → `(3 2 1)` |
 | `(nth n xs)` | 0-based index |
 | `(last xs)` | last element |
 | `(flatten xs)` | one level of nesting removed |
+| `(contains x xs)` | true if x is in xs |
+| `(replicate n x)` | list of n copies of x |
+| `(intersperse sep xs)` | insert sep between every element |
+| `(windows n xs)` | sliding windows of size n |
+| `(partition pred xs)` | `((matches) (non-matches))` |
+| `(find pred xs)` | first matching element or nil |
+| `(count_if pred xs)` | count of elements satisfying pred |
+| `(enumerate xs)` | `((0 x0) (1 x1) …)` |
 
 ### Higher-order functions
 
 | Function | Example |
 |---|---|
 | `(fold f acc xs)` | `(fold + 0 (list 1 2 3))` → `6` |
+| `(map f xs)` | apply f to every element |
+| `(filter pred xs)` | keep elements where pred is true |
 | `(any pred xs)` | `(any (fn (x) (= x 0)) xs)` |
 | `(all pred xs)` | all elements satisfy pred |
 | `(zip xs ys)` | `(zip (list 1 2) (list 3 4))` → `((1 3) (2 4))` |
 | `(zip_with f xs ys)` | apply f to paired elements |
+| `(flat_map f xs)` | map then flatten one level |
+| `(scan f acc xs)` | running fold — all intermediate accumulators |
 
 ### Math
 
-`abs` `mod` `max2` `min2` `sum` `product` `clamp`
+`abs` `mod` `max2` `min2` `sum` `product` `clamp` `inc` `dec` `even` `odd` `square` `gcd` `lcm`
 
 ### String
 
-`(repeat_str s n)` — repeat string n times
+`(repeat_str s n)` — repeat string n times  
+`(join sep xs)` — concatenate a list of strings with a separator
+
+### Tests
+
+A 101-test regression suite lives at `lib/test-prelude.hl`:
+
+```sh
+./hilisp lib/prelude.hl lib/test-prelude.hl
+```
+
+This is also run in CI after building the interpreter.
 
 ---
 
@@ -203,9 +239,8 @@ Anything defined in an earlier file is visible to all later files.
 
 | Limitation | Workaround |
 |---|---|
-| String literals can't contain spaces | Build strings with `str`: `(str "hello" "-" "world")` |
 | No escape sequences in strings (`\n`, `\t`) | Use `exec "printf '...'"` to produce controlled output |
-| `exec` command string can't contain spaces | Pass the whole command as a shell one-liner using a variable built from parts, or write a wrapper `.sh` |
+| `exec` command string can't contain spaces in parts | Build the command string with `str` |
 | No tail-call optimisation | Keep recursion depth small; use `fold` for iteration |
 | No file-system listing | Use `exec "ls ..."` and parse the output |
 

@@ -20,7 +20,7 @@ Lisp with ML/Rust-like semantics. HiLisp borrows Carp's vocabulary of special fo
 ./hilisp examples/recursion.hl
 
 # Build from source (requires hica ≥ 0.29.1 and Koka 3.2.3)
-hica build src/main.hc -o hilisp
+hica build -o hilisp
 ```
 
 ## Language overview
@@ -96,6 +96,9 @@ The `examples/` directory contains runnable `.hl` files:
 | `lists.hl` | `car`/`cdr`/`cons`, `map`, `filter` |
 | `closures.hl` | Closure factories, `compose` |
 | `fizzbuzz.hl` | `cond`, loops, custom `mod` |
+| `sorting.hl` | Merge sort and insertion sort |
+| `statistics.hl` | Mean, median, variance, standard deviation |
+| `higher_order.hl` | `scan`, `windows`, `flat_map`, `partition`, `enumerate` |
 
 ## Source layout
 
@@ -112,13 +115,20 @@ src/
   main.hc       — CLI, REPL, file runner
 ```
 
+## Standard library
+
+Load `lib/prelude.hl` as the first argument to get a full set of list, math, and
+string utilities:
+
+```sh
+./hilisp lib/prelude.hl examples/sorting.hl
+```
+
+See [docs/team-scripting-guide.md](docs/team-scripting-guide.md) for the full
+function reference.
+
 ## Known limitations
 
-- String literals with spaces are split by the tokenizer (`"hello world"` → two tokens).
 - `println` uses `lval_show`, so strings display with quotes.
 - No tail-call optimisation — deep recursion will stack-overflow.
 
-## Further reading
-
-See [docs/building-lisp-in-hica.md](docs/building-lisp-in-hica.md) for the design
-exploration and the hica features that made this possible.
