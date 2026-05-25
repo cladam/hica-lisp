@@ -19,6 +19,23 @@ pub fun char_scan(src: string, i: int, cur: string, acc: list<string>, in_str: b
       if c == "\"" {
         // Closing quote — emit the complete string token
         char_scan(src, i + 1, "", acc + [cur + "\""], false)
+      } else if c == "\\" {
+        // Escape sequence — peek at next character and translate
+        let next = src[i+1:i+2]
+        if next == "n" {
+          char_scan(src, i + 2, cur + "\n", acc, true)
+        } else if next == "t" {
+          char_scan(src, i + 2, cur + "\t", acc, true)
+        } else if next == "r" {
+          char_scan(src, i + 2, cur + "\r", acc, true)
+        } else if next == "\\" {
+          char_scan(src, i + 2, cur + "\\", acc, true)
+        } else if next == "\"" {
+          char_scan(src, i + 2, cur + "\"", acc, true)
+        } else {
+          // Unknown or dangling escape — keep as-is
+          char_scan(src, i + 1, cur + "\\", acc, true)
+        }
       } else {
         char_scan(src, i + 1, cur + c, acc, true)
       }
@@ -72,4 +89,11 @@ test "tokenise string literal with comma-space separator" {
 
 test "tokenise string literal with parens inside" {
   assert_eq(tokenise("\"a(b)c\""), ["\"a(b)c\""])
+}
+
+test "tokenise string escape sequences" {
+  // \n becomes an actual newline; \t becomes a tab; \\ becomes a backslash
+  assert_eq(tokenise("\"a\\nb\""), ["\"a\nb\""])
+  assert_eq(tokenise("\"a\\tb\""), ["\"a\tb\""])
+  assert_eq(tokenise("\"a\\\\b\""), ["\"a\\b\""])
 }

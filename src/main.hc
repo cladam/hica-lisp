@@ -58,14 +58,14 @@ fun run(r) {
     let env = make_env()
     run_files(files, env)
   } else {
-    println("HiLisp 0.2.0 — type (quit) to exit")
+    println("HiLisp 0.3.0 — type (quit) to exit")
     let env = make_env()
     repl(env)
   }
 }
 
 fun make_spec() =>
-  cli("hilisp", "0.2.0", "a small Lisp interpreter in Hica")
+  cli("hilisp", "0.3.0", "a small Lisp interpreter in Hica")
     |> arg("file", "source file(s) to run — multiple files share one env (omit for REPL)", false)
 
 fun main() {
