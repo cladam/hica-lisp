@@ -40,8 +40,10 @@ pub fun parse_atom(tok: string) : LVal =>
   }
 
 test "parse_atom: numbers and symbols" {
-  assert(match parse_atom("42") { LNum(n) => n == 42, _ => false })
-  assert(match parse_atom("foo") { LSym(s) => s == "foo", _ => false })
+  let r1 = match parse_atom("42")  { LNum(n) => n == 42,   _ => false }
+  let r2 = match parse_atom("foo") { LSym(s) => s == "foo", _ => false }
+  assert(r1)
+  assert(r2)
 }
 
 test "parse_atom: booleans" {
