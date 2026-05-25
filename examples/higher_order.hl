@@ -1,0 +1,78 @@
+; Higher-order functions showcase
+; Demonstrates: scan, windows, flat-map, partition, enumerate, zip-with, find, count-if
+; Inspired by Carp's Array module examples
+
+; ── scan: running aggregates ─────────────────────────────────────────────
+
+(def prices (list 10 13 9 15 11 14 12 16))
+
+(println "prices:")
+(println prices)
+
+; cumulative sum — running total spend
+(println "running totals:")
+(println (cdr (scan + 0 prices)))
+
+; running maximum — tracking the high-water mark
+(println "running highs:")
+(println (cdr (scan max2 (car prices) (cdr prices))))
+
+; ── windows: sliding view ────────────────────────────────────────────────
+
+; 3-day moving average (integer) — map sum over each window, divide by 3
+(defn window_avg (ws)
+  (map (fn (w) (/ (sum w) (length w))) ws))
+
+(println "3-day moving avg:")
+(println (window_avg (windows 3 prices)))
+
+; detect upward runs of 2 consecutive days
+(defn rising (pair)
+  (< (car pair) (car (cdr pair))))
+
+(println "consecutive rising pairs:")
+(println (filter rising (windows 2 prices)))
+
+; ── flat-map: expand then flatten ────────────────────────────────────────
+
+; pair each number with its negative → interleaved list
+(println "paired with negatives:")
+(println (flat_map (fn (x) (list x (- 0 x))) (list 1 2 3 4)))
+
+; expand range per element: (1 2 3) → (0 1 0 1 2 0 1 2 3)
+(println "triangular expansion:")
+(println (flat_map (fn (n) (range 0 (+ n 1))) (list 1 2 3)))
+
+; ── partition: split by predicate ────────────────────────────────────────
+
+; partition numbers above/below average
+(def nums (list 4 7 2 9 1 8 3 6 5))
+(def avg (/ (sum nums) (length nums)))
+
+(println "above / below average (avg =")
+(println avg)
+(println "):")
+(println (partition (fn (x) (> x avg)) nums))
+
+; evens vs odds from prices
+(println "even / odd prices:")
+(println (partition even prices))
+
+; ── combining them all ───────────────────────────────────────────────────
+
+; find the first window (of 3) whose sum exceeds 35
+(defn window_sum (w) (sum w))
+
+(println "first 3-day window summing > 35:")
+(println (find (fn (w) (> (window_sum w) 35)) (windows 3 prices)))
+
+; enumerate the prices, keep only the ones above 12, show (index price)
+(println "high-price days (price > 12):")
+(println (filter (fn (pair) (> (car (cdr pair)) 12))
+                 (enumerate prices)))
+
+; how many windows of 3 have a sum above the mean of all window sums?
+(def wsums (map window_sum (windows 3 prices)))
+(def wmean (/ (sum wsums) (length wsums)))
+(println "windows above mean sum:")
+(println (count_if (fn (s) (> s wmean)) wsums))
