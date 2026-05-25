@@ -1,7 +1,7 @@
 # HiLisp - a small Lisp interpreter written in Hica
 
 HiLisp is a tree-walking Lisp interpreter built entirely in
-[hica](https://github.com/hica-lang/hica), a language that compiles to
+[hica](https://github.com/hica/), a language that compiles to
 [Koka](https://koka-lang.github.io). It serves as a proof of concept that hica is
 expressive enough to implement a real language, including closures, recursion, and
 higher-order functions.
