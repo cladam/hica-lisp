@@ -5,11 +5,12 @@
 fun flush_tok(cur: string, acc: list<string>) : list<string> =>
   if str_length(cur) == 0 { acc } else { acc + [cur] }
 
-// Scan src[i..] character by character.
+// char_scan: walk src[i..] character by character.
 // cur  = token being accumulated
 // acc  = completed tokens so far
 // in_str = true when inside a "..." literal
-fun scan(src: string, i: int, cur: string, acc: list<string>, in_str: bool) : list<string> {
+// (named char_scan, not scan, to avoid clashing with Koka's built-in scan)
+fun char_scan(src: string, i: int, cur: string, acc: list<string>, in_str: bool) : list<string> {
   if i >= str_length(src) {
     flush_tok(cur, acc)
   } else {
@@ -17,31 +18,31 @@ fun scan(src: string, i: int, cur: string, acc: list<string>, in_str: bool) : li
     if in_str {
       if c == "\"" {
         // Closing quote — emit the complete string token
-        scan(src, i + 1, "", acc + [cur + "\""], false)
+        char_scan(src, i + 1, "", acc + [cur + "\""], false)
       } else {
-        scan(src, i + 1, cur + c, acc, true)
+        char_scan(src, i + 1, cur + c, acc, true)
       }
     } else {
       if c == "\"" {
         // Opening quote — flush any current symbol, start a string token
-        scan(src, i + 1, "\"", flush_tok(cur, acc), true)
+        char_scan(src, i + 1, "\"", flush_tok(cur, acc), true)
       } else if c == "(" {
-        scan(src, i + 1, "", flush_tok(cur, acc) + ["("], false)
+        char_scan(src, i + 1, "", flush_tok(cur, acc) + ["("], false)
       } else if c == ")" {
-        scan(src, i + 1, "", flush_tok(cur, acc) + [")"], false)
+        char_scan(src, i + 1, "", flush_tok(cur, acc) + [")"], false)
       } else if c == "'" {
-        scan(src, i + 1, "", flush_tok(cur, acc) + ["'"], false)
+        char_scan(src, i + 1, "", flush_tok(cur, acc) + ["'"], false)
       } else if c == " " || c == "\n" || c == "\t" || c == "\r" {
-        scan(src, i + 1, "", flush_tok(cur, acc), false)
+        char_scan(src, i + 1, "", flush_tok(cur, acc), false)
       } else {
-        scan(src, i + 1, cur + c, acc, false)
+        char_scan(src, i + 1, cur + c, acc, false)
       }
     }
   }
 }
 
 pub fun tokenise(input: string) : list<string> {
-  scan(input, 0, "", [], false)
+  char_scan(input, 0, "", [], false)
 }
 
 test "tokenise basic expression" {
