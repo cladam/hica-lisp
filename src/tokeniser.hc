@@ -2,7 +2,7 @@
 // string literals containing spaces, parens, and other special chars.
 
 // Flush accumulated token into acc list if non-empty
-fun flush_tok(cur: string, acc: list<string>) : list<string> =>
+pub fun flush_tok(cur: string, acc: list<string>) : list<string> =>
   if str_length(cur) == 0 { acc } else { acc + [cur] }
 
 // char_scan: walk src[i..] character by character.
@@ -10,7 +10,7 @@ fun flush_tok(cur: string, acc: list<string>) : list<string> =>
 // acc  = completed tokens so far
 // in_str = true when inside a "..." literal
 // (named char_scan, not scan, to avoid clashing with Koka's built-in scan)
-fun char_scan(src: string, i: int, cur: string, acc: list<string>, in_str: bool) : list<string> {
+pub fun char_scan(src: string, i: int, cur: string, acc: list<string>, in_str: bool) : list<string> {
   if i >= str_length(src) {
     flush_tok(cur, acc)
   } else {

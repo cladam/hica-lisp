@@ -68,13 +68,7 @@ jobs:
       - name: Build hilisp binary
         shell: bash
         continue-on-error: ${{ runner.os == 'Windows' }}
-        run: |
-          STDLIB="$HOME/.hica/stdlib"
-          # Regenerate .kk files from .hc sources; ignore koka step in hica build
-          hica build 2>&1 | grep -v "koka failed" || true
-          # Compile with koka (debug mode avoids cli.kki release-build bug)
-          #koka -isrc "-i$STDLIB" --optimize=0 src/main.kk -o hilisp
-          chmod +x hilisp
+        run: hica build -o hilisp
 
       - name: Run prelude tests
         shell: bash
