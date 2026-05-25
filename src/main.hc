@@ -4,6 +4,9 @@ import "std/cli"
 import "std/io"
 import "./lisp"
 
+// HiLisp version number, just for house-keeping
+let hilisp_version = "0.1.0"
+
 // Parse and eval one expression, return display string + new env
 fun eval_str(src: string, env: Env) {
   let tokens = tokenise(src)
