@@ -149,11 +149,13 @@ pub fun builtin_lines(args: list<LVal>) : LVal =>
   }
 
 // (contains str sub) — true if str contains the substring sub
-pub fun builtin_contains(args: list<LVal>) : LVal =>
-  match args {
-    [LStr(s), LStr(sub)] => LBool(contains(s, sub)),
-    _                    => LStr("error: contains expects (str sub)")
-  }
+pub fun builtin_contains(args: list<LVal>) : LVal => match args {
+  [LStr(s), LStr(sub)] => {
+    let result = contains(s, sub)
+    LBool(result)
+  },
+  _ => LStr("error: contains expects (str sub)")
+}
 
 // Dispatch — maps a builtin name to its implementation
 pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
