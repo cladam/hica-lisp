@@ -72,7 +72,6 @@ jobs:
           hica build -o hilisp
 
       - name: Run prelude tests
-        if: runner.os != 'Windows'
         shell: bash
         run: |
           output=$(./hilisp lib/prelude.hl lib/test-prelude.hl)
