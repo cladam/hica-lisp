@@ -1,4 +1,4 @@
-# HiLisp — a small Lisp interpreter written in Hica
+# HiLisp - a small Lisp interpreter written in Hica
 
 HiLisp is a tree-walking Lisp interpreter built entirely in
 [hica](https://github.com/hica-lang/hica), a language that compiles to
@@ -6,9 +6,8 @@ HiLisp is a tree-walking Lisp interpreter built entirely in
 expressive enough to implement a real language, including closures, recursion, and
 higher-order functions.
 
-Inspiration: **[Carp](https://carp-lang.github.io/Carp/LanguageGuide.html)** — a
-Lisp with ML/Rust-like semantics. HiLisp borrows Carp's vocabulary of special forms:
-`defn`, `def`, `fn`, `let`, `do`, `cond`, `quote`, and `use`.
+Inspiration: **[Carp](https://carp-lang.github.io/Carp/LanguageGuide.html)**, a Lisp with ML/Rust-like semantics. 
+HiLisp borrows Carp's vocabulary of special forms: `defn`, `def`, `fn`, `let`, `do`, `cond`, `quote`, and `use`.
 
 ## Quick start
 
@@ -19,9 +18,11 @@ Lisp with ML/Rust-like semantics. HiLisp borrows Carp's vocabulary of special fo
 # Run a .hl file
 ./hilisp examples/recursion.hl
 
-# Build from source (requires hica ≥ 0.29.1 and Koka 3.2.3)
+# Build from source (requires hica ≥ 0.29.3 and Koka 3.2.3)
 hica build -o hilisp
 ```
+
+New to Lisp? Start with [docs/lisp-primer.md](docs/lisp-primer.md).
 
 ## Language overview
 
@@ -104,15 +105,15 @@ The `examples/` directory contains runnable `.hl` files:
 
 ```
 src/
-  ast.hc        — LVal and Env types
-  types.hc      — env_get / env_set
-  tokeniser.hc  — source text → token list
-  parser.hc     — token list → LVal AST
-  display.hc    — lval_show
-  builtins.hc   — built-in functions + make_env()
-  eval.hc       — tree-walking evaluator
-  lisp.hc       — barrel re-export
-  main.hc       — CLI, REPL, file runner
+  ast.hc        - LVal and Env types
+  types.hc      - env_get / env_set
+  tokeniser.hc  - source text → token list
+  parser.hc     - token list → LVal AST
+  display.hc    - lval_show
+  builtins.hc   - built-in functions + make_env()
+  eval.hc       - tree-walking evaluator
+  lisp.hc       - barrel re-export
+  main.hc       - CLI, REPL, file runner
 ```
 
 ## Standard library
