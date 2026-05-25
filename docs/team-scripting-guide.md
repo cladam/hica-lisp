@@ -39,7 +39,7 @@ language and prelude:
 ./hilisp examples/fizzbuzz.hl                      # cond, loops (no prelude needed)
 ```
 
-Use `./dev binary hilisp` to rebuild the interpreter from source after changing
+Use `hica build -o hilisp` to rebuild the interpreter from source after changing
 interpreter code.
 
 ---

@@ -66,17 +66,15 @@ jobs:
           done
 
       - name: Build hilisp binary
+        if: runner.os != 'Windows'
         shell: bash
-        continue-on-error: ${{ runner.os == 'Windows' }}
         run: hica build -o hilisp
 
       - name: Run prelude tests
+        if: runner.os != 'Windows'
         shell: bash
-        continue-on-error: ${{ runner.os == 'Windows' }}
-        env:
-          HILISP: ${{ runner.os == 'Windows' && './hilisp.exe' || './hilisp' }}
         run: |
-          output=$($HILISP lib/prelude.hl lib/test-prelude.hl)
+          output=$(./hilisp lib/prelude.hl lib/test-prelude.hl)
           echo "$output"
           # Fail the step if any tests failed
           echo "$output" | grep -q "^failed: 0" \
