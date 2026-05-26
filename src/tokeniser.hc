@@ -5,6 +5,12 @@
 pub fun flush_tok(cur: string, acc: list<string>) : list<string> =>
   if str_length(cur) == 0 { acc } else { acc + [cur] }
 
+// skip_comment: advance past the rest of a ; line comment (up to and including the newline)
+pub fun skip_comment(src: string, i: int) : int =>
+  if i >= str_length(src) { i }
+  else if src[i : i + 1] == "\n" { i + 1 }
+  else { skip_comment(src, i + 1) }
+
 // char_scan: walk src[i..] character by character.
 // cur  = token being accumulated
 // acc  = completed tokens so far
@@ -49,6 +55,9 @@ pub fun char_scan(src: string, i: int, cur: string, acc: list<string>, in_str: b
         char_scan(src, i + 1, "", flush_tok(cur, acc) + [")"], false)
       } else if c == "'" {
         char_scan(src, i + 1, "", flush_tok(cur, acc) + ["'"], false)
+      } else if c == ";" {
+        // Line comment — skip to end of line via recursive helper
+        char_scan(src, skip_comment(src, i + 1), "", flush_tok(cur, acc), false)
       } else if c == " " || c == "\n" || c == "\t" || c == "\r" {
         char_scan(src, i + 1, "", flush_tok(cur, acc), false)
       } else {
