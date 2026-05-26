@@ -6,7 +6,6 @@
 #   ./scripts/hl scripts/foo.hl        # run a script with prelude
 #   ./scripts/hl scripts/a.hl b.hl     # load multiple files in order
 #
-# hica-lisp is bundled as a submodule at lib/hica-lisp.
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HILISP="$SCRIPT_DIR/hilisp"
