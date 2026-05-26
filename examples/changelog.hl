@@ -1,7 +1,7 @@
-; hica-changelog.hl — generate a CHANGELOG draft from Conventional Commits
+; changelog.hl — generate a CHANGELOG draft from Conventional Commits
 ;
-; Run from the hica repo root:
-;   scripts/hl scripts/hica-changelog.hl
+; Run from the hica-lisp repo root:
+;   ./hl examples/changelog.hl
 ;
 ; Generates commits since the last tag (unreleased mode).
 ; Groups by type with emoji section headers matching tbdflow changelog format.
@@ -120,7 +120,7 @@
 
 (println "")
 (println (bar))
-(println "  HICA CHANGELOG DRAFT")
+(println "  CHANGELOG DRAFT")
 (println (bar))
 (println "")
 (println draft)
