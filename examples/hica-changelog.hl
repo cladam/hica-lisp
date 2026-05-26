@@ -19,7 +19,7 @@
   (exec "date '+%Y-%m-%d'"))
 
 (def remote-url
-  (exec "git remote get-url origin 2>/dev/null || echo ''"))
+  (exec "git remote get-url origin 2>/dev/null | sed s/\\.git$// || echo ''"))
 
 ; Use remote URL for links only when it's an HTTPS URL (not git@)
 (def repo-url
