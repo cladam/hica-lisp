@@ -61,6 +61,21 @@ pub fun builtin_or(args: list<LVal>) : LVal =>
     _      => LStr("error: or expects 2 args")
   }
 
+// Null/empty predicates
+pub fun builtin_null(args: list<LVal>) : LVal =>
+  match args {
+    [LNil] => LBool(true),
+    [_]    => LBool(false),
+    _      => LStr("error: null? expects 1 arg")
+  }
+
+pub fun builtin_empty(args: list<LVal>) : LVal =>
+  match args {
+    [LList(items)] => LBool(length(items) == 0),
+    [LStr(s)]      => LBool(str_length(s) == 0),
+    _              => LStr("error: empty? expects a list or string")
+  }
+
 // List primitives — the classic Lisp trio plus length
 pub fun builtin_car(args: list<LVal>) : LVal =>
   match args {
@@ -180,6 +195,8 @@ pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
     "not"     => (builtin_not(args), env),
     "and"     => (builtin_and(args), env),
     "or"      => (builtin_or(args), env),
+    "null?"   => (builtin_null(args), env),
+    "empty?"  => (builtin_empty(args), env),
     "car"     => (builtin_car(args), env),
     "cdr"     => (builtin_cdr(args), env),
     "cons"    => (builtin_cons(args), env),
@@ -198,7 +215,7 @@ pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
 // Build the initial environment with all builtins pre-registered
 pub fun make_env() : Env {
   let names = ["+", "-", "*", "/", "=", "<", ">", "<=", ">=",
-               "not", "and", "or",
+               "not", "and", "or", "null?", "empty?",
                "car", "cdr", "cons", "list", "length",
                "println", "str",
                "write-file", "exec",
@@ -228,10 +245,23 @@ test "list primitives" {
   assert_eq(lval_show(builtin_cons([LNum(0), lst])), "(0 1 2 3)")
 }
 
+test "null? and empty? predicates" {
+  assert_eq(lval_show(builtin_null([LNil])), "true")
+  assert_eq(lval_show(builtin_null([LList([])])), "false")
+  assert_eq(lval_show(builtin_empty([LList([])])), "true")
+  assert_eq(lval_show(builtin_empty([LList([LNum(1)])])), "false")
+  assert_eq(lval_show(builtin_empty([LStr("")])), "true")
+  assert_eq(lval_show(builtin_empty([LStr("x")])), "false")
+}
+
 test "make_env registers builtins" {
   let e        = make_env()
   let has_plus = match env_get(e, "+")   { LBuiltin(_) => true, _ => false }
   let has_car  = match env_get(e, "car") { LBuiltin(_) => true, _ => false }
+  let has_null = match env_get(e, "null?") { LBuiltin(_) => true, _ => false }
+  let has_empty = match env_get(e, "empty?") { LBuiltin(_) => true, _ => false }
   assert(has_plus)
   assert(has_car)
+  assert(has_null)
+  assert(has_empty)
 }

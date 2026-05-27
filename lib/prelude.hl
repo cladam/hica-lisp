@@ -10,25 +10,25 @@
 
 ; (take n xs) → first n elements
 (defn take (n xs)
-  (if (or (<= n 0) (= (length xs) 0))
+  (if (or (<= n 0) (empty? xs))
     (list)
     (cons (car xs) (take (- n 1) (cdr xs)))))
 
 ; (drop n xs) → skip first n elements
 (defn drop (n xs)
-  (if (or (<= n 0) (= (length xs) 0))
+  (if (or (<= n 0) (empty? xs))
     xs
     (drop (- n 1) (cdr xs))))
 
 ; (concat xs ys) → append two lists
 (defn concat (xs ys)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     ys
     (cons (car xs) (concat (cdr xs) ys))))
 
 ; (reverse xs) → reversed list
 (defn reverse_acc (xs acc)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     acc
     (reverse_acc (cdr xs) (cons (car xs) acc))))
 (defn reverse (xs) (reverse_acc xs (list)))
@@ -41,19 +41,19 @@
 
 ; (last xs) → last element
 (defn last (xs)
-  (if (= (length (cdr xs)) 0)
+  (if (empty? (cdr xs))
     (car xs)
     (last (cdr xs))))
 
 ; (flatten xs) → flatten one level of nesting
 (defn flatten (xs)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     (list)
     (concat (car xs) (flatten (cdr xs)))))
 
 ; (contains x xs) → true if x is in xs (structural equality)
 (defn contains (x xs)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     false
     (if (= x (car xs)) true (contains x (cdr xs)))))
 
@@ -66,37 +66,37 @@
 
 ; (map f xs) → apply f to every element
 (defn map (f xs)
-  (if (= (length xs) 0) (list)
+  (if (empty? xs) (list)
     (cons (f (car xs)) (map f (cdr xs)))))
 
 ; (filter pred xs) → keep elements where pred is true
 (defn filter (pred xs)
-  (if (= (length xs) 0) (list)
+  (if (empty? xs) (list)
     (if (pred (car xs))
       (cons (car xs) (filter pred (cdr xs)))
       (filter pred (cdr xs)))))
 
 ; (fold f acc xs) → left fold — (fold + 0 (list 1 2 3)) → 6
 (defn fold (f acc xs)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     acc
     (fold f (f acc (car xs)) (cdr xs))))
 
 ; (any pred xs) → true if any element satisfies pred
 (defn any (pred xs)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     false
     (if (pred (car xs)) true (any pred (cdr xs)))))
 
 ; (all pred xs) → true if every element satisfies pred
 (defn all (pred xs)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     true
     (if (pred (car xs)) (all pred (cdr xs)) false)))
 
 ; (zip-with f xs ys) → apply f to corresponding pairs
 (defn zip_with (f xs ys)
-  (if (or (= (length xs) 0) (= (length ys) 0))
+  (if (or (empty? xs) (empty? ys))
     (list)
     (cons (f (car xs) (car ys)) (zip_with f (cdr xs) (cdr ys)))))
 
@@ -107,7 +107,7 @@
 ; (take-while pred xs) → leading elements while pred holds
 ; e.g. (take-while odd '(1 3 4 5)) → (1 3)
 (defn take_while (pred xs)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     (list)
     (if (pred (car xs))
       (cons (car xs) (take_while pred (cdr xs)))
@@ -116,7 +116,7 @@
 ; (drop-while pred xs) → skip leading elements while pred holds
 ; e.g. (drop-while odd '(1 3 4 5)) → (4 5)
 (defn drop_while (pred xs)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     (list)
     (if (pred (car xs))
       (drop_while pred (cdr xs))
@@ -130,7 +130,7 @@
 ; (scan f acc xs) → fold that keeps all intermediate values
 ; e.g. (scan + 0 '(1 2 3)) → (0 1 3 6)
 (defn scan (f acc xs)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     (list acc)
     (cons acc (scan f (f acc (car xs)) (cdr xs)))))
 
@@ -144,14 +144,14 @@
 ; (intersperse sep xs) → insert sep between every element
 ; e.g. (intersperse 0 '(1 2 3)) → (1 0 2 0 3)
 (defn intersperse (sep xs)
-  (if (or (= (length xs) 0) (= (length (cdr xs)) 0))
+  (if (or (empty? xs) (empty? (cdr xs)))
     xs
     (cons (car xs) (cons sep (intersperse sep (cdr xs))))))
 
 ; (partition pred xs) → (list matching non-matching) — split xs in two
 ; e.g. (partition even '(1 2 3 4 5)) → ((2 4) (1 3 5))
 (defn partition_acc (pred xs yes no)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     (list yes no)
     (if (pred (car xs))
       (partition_acc pred (cdr xs) (concat yes (list (car xs))) no)
@@ -160,7 +160,7 @@
 
 ; (find pred xs) → first element matching pred, or nil
 (defn find (pred xs)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     nil
     (if (pred (car xs))
       (car xs)
@@ -173,7 +173,7 @@
 ; (enumerate xs) → list of (index element) pairs, 0-based
 ; e.g. (enumerate '(a b c)) → ((0 a) (1 b) (2 c))
 (defn enumerate_from (xs i)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     (list)
     (cons (list i (car xs)) (enumerate_from (cdr xs) (+ i 1)))))
 (defn enumerate (xs) (enumerate_from xs 0))
@@ -227,7 +227,7 @@
 ; (join sep xs) → join list of strings with separator
 ; e.g. (join ", " (list "a" "b" "c")) → "a, b, c"
 (defn join (sep xs)
-  (if (= (length xs) 0)
+  (if (empty? xs)
     ""
     (fold (fn (acc x) (str acc (str sep x)))
           (str (car xs))

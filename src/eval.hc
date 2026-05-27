@@ -188,6 +188,16 @@ test "eval if branches" {
   assert_eq(lval_show(r2), "2")
 }
 
+test "eval null? and empty? builtins" {
+  let env = make_env()
+  let (r1, _) = eval(LList([LSym("null?"), LSym("nil")]), env)
+  let (r2, _) = eval(LList([LSym("empty?"), LList([LSym("list")])]), env)
+  let (r3, _) = eval(LList([LSym("empty?"), LStr("")]), env)
+  assert_eq(lval_show(r1), "true")
+  assert_eq(lval_show(r2), "true")
+  assert_eq(lval_show(r3), "true")
+}
+
 test "eval def and symbol lookup" {
   let env = make_env()
   let (_, env2) = eval(LList([LSym("def"), LSym("x"), LNum(10)]), env)

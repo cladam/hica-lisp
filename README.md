@@ -44,7 +44,7 @@ or nil. All code is an s-expression.
 
 ### Built-in functions
 
-`+` `-` `*` `/` `=` `<` `>` `<=` `>=` `not` `and` `or`  
+`+` `-` `*` `/` `=` `<` `>` `<=` `>=` `not` `and` `or` `null?` `empty?`  
 `car` `cdr` `cons` `list` `length`  
 `println` `str`
 
