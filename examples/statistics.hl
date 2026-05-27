@@ -5,8 +5,8 @@
 ; ── re-use merge sort from sorting.hl (loaded before this file) ─────────
 
 (defn s_merge (xs ys)
-  (if (= (length xs) 0) ys
-    (if (= (length ys) 0) xs
+  (if (empty? xs) ys
+    (if (empty? ys) xs
       (if (<= (car xs) (car ys))
         (cons (car xs) (s_merge (cdr xs) ys))
         (cons (car ys) (s_merge xs (cdr ys)))))))
