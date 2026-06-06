@@ -180,6 +180,34 @@ pub fun builtin_contains(args: list<LVal>) : LVal =>
     _                    => LError("contains expects (str sub)")
   }
 
+// (assert condition) or (assert condition "message")
+// Returns nil on success; LError on failure so run_forms prints it to stderr
+// and continues, letting you see all failures in one run.
+pub fun builtin_assert(args: list<LVal>) : LVal =>
+  match args {
+    [cond] =>
+      if is_truthy(cond) { LNil }
+      else { LError("assertion failed") },
+    [cond, LStr(msg)] =>
+      if is_truthy(cond) { LNil }
+      else { LError("assertion failed: " + msg) },
+    _ => LError("assert expects 1 or 2 args")
+  }
+
+// (assert-eq a b) — structural equality check with auto-generated message
+// Uses show_all([v]) rather than lval_show(v) directly so the div effect
+// from lval_show stays within builtins.hc's local recursive group.
+// No explicit return type — Koka infers the div effect from show_all.
+pub fun builtin_assert_eq(args: list<LVal>) =>
+  match args {
+    [a, b] =>
+      match builtin_eq([a, b]) {
+        LBool(true) => LNil,
+        _           => LError("expected " + show_all([b]) + ", got " + show_all([a]))
+      },
+    _ => LError("assert-eq expects 2 args")
+  }
+
 // Dispatch — maps a builtin name to its implementation
 pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
   match name {
@@ -209,6 +237,8 @@ pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
     "starts-with"  => (builtin_starts_with(args), env),
     "lines"        => (builtin_lines(args), env),
     "contains"     => (builtin_contains(args), env),
+    "assert"       => (builtin_assert(args), env),
+    "assert-eq"    => (builtin_assert_eq(args), env),
     _              => (LError("unknown builtin: " + name), env)
   }
 
@@ -219,7 +249,8 @@ pub fun make_env() : Env {
                "car", "cdr", "cons", "list", "length",
                "println", "str",
                "write-file", "exec",
-               "starts-with", "lines", "contains"]
+               "starts-with", "lines", "contains",
+               "assert", "assert-eq"]
   fold(names, EmptyEnv, (e, name) => env_set(e, name, LBuiltin(name)))
 }
 
