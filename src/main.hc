@@ -28,7 +28,7 @@ fun run_forms(tokens: list<string>, env: Env) : Env {
 
 // Interactive REPL loop
 fun repl(env: Env) {
-  let src = input("hilisp=> ")
+  let src = input("hilisp => ")
   if src == "(quit)" || src == ":quit" || src == "(exit)" {
     println("bye!")
   } else {
@@ -61,14 +61,14 @@ fun run(r) {
     let env = make_env()
     run_files(files, env)
   } else {
-    println("HiLisp 0.3.2 — type (quit) to exit")
+    println("HiLisp 0.4.1 — type (quit) to exit")
     let env = make_env()
     repl(env)
   }
 }
 
 fun make_spec() =>
-  cli("hilisp", "0.3.2", "a small Lisp interpreter in Hica")
+  cli("hilisp", "0.4.1", "a small Lisp interpreter in Hica")
     |> arg("file", "source file(s) to run — multiple files share one env (omit for REPL)", false)
 
 fun main() {
