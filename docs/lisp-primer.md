@@ -145,26 +145,52 @@ When you need more than one expression in a place that only accepts one:
 
 `do` evaluates each expression in order and returns the last one.
 
-## Recursion instead of loops
+## Iteration with `loop`/`recur`
 
-HiLisp has no `while` or `for`. Use a recursive function:
+HiLisp has no `while` or `for`. The idiomatic replacement is `loop`/`recur`,
+inspired by Clojure and Jank. `loop` establishes named bindings (like `let`);
+`recur` restarts the loop with new values **without growing the call stack**.
 
 ```lisp
-(defn countdown (n)
+; Countdown — side effects per iteration
+(loop [n 5]
   (if (= n 0)
-    (println "done")
+    (println "done!")
     (do
       (println n)
-      (countdown (- n 1)))))
-
-(countdown 3)
-; 3
-; 2
-; 1
-; done
+      (recur (- n 1)))))
+; 5 4 3 2 1 done!
 ```
 
-For accumulating a result over a list, prefer `fold` from the prelude over manual recursion:
+The binding vector `[name init ...]` can hold multiple names — use this for
+accumulator patterns:
+
+```lisp
+; Sum 1..100, O(1) stack
+(loop [i 1 acc 0]
+  (if (> i 100)
+    acc
+    (recur (+ i 1) (+ acc i))))
+; 5050
+```
+
+`recur` must be in **tail position** — the very last thing evaluated in the
+branch. A common mistake is placing `recur` before a `println`; swap them so
+the print happens first.
+
+### Recursion for naturally recursive problems
+
+When the structure of the problem is recursive (trees, lists, divide-and-conquer)
+use a named function instead:
+
+```lisp
+(defn sum-list (xs)
+  (if (= (length xs) 0)
+    0
+    (+ (car xs) (sum-list (cdr xs)))))
+```
+
+For accumulating a result over a list, prefer `fold` from the prelude:
 
 ```lisp
 (fold + 0 (list 1 2 3 4 5))   ; 15
@@ -207,14 +233,12 @@ This lets you create specialised functions from general ones, a core Lisp patter
     (= (mod n 5)  0) "buzz"
     true             (str n)))
 
-(defn run (i limit)
-  (if (> i limit)
+(loop [i 1]
+  (if (> i 21)
     nil
     (do
       (println (fizzbuzz i))
-      (run (+ i 1) limit))))
-
-(run 1 21)
+      (recur (+ i 1)))))
 ```
 
 ## Next steps

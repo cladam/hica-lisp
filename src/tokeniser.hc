@@ -53,6 +53,11 @@ pub fun char_scan(src: string, i: int, cur: string, acc: list<string>, in_str: b
         char_scan(src, i + 1, "", flush_tok(cur, acc) + ["("], false)
       } else if c == ")" {
         char_scan(src, i + 1, "", flush_tok(cur, acc) + [")"], false)
+      } else if c == "[" {
+        // Square brackets are syntactic sugar for lists (binding vectors, param lists)
+        char_scan(src, i + 1, "", flush_tok(cur, acc) + ["("], false)
+      } else if c == "]" {
+        char_scan(src, i + 1, "", flush_tok(cur, acc) + [")"], false)
       } else if c == "'" {
         char_scan(src, i + 1, "", flush_tok(cur, acc) + ["'"], false)
       } else if c == ";" {

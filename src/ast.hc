@@ -10,6 +10,8 @@ pub type LVal {
   LList(items: list<LVal>),
   LFun(fname: string, params: list<string>, body: LVal, env: Env),
   LBuiltin(name: string),
+  LRecur(args: list<LVal>),
+  LError(msg: string),
   LNil
 }
 

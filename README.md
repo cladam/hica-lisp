@@ -6,8 +6,7 @@ HiLisp is a tree-walking Lisp interpreter built entirely in
 expressive enough to implement a real language, including closures, recursion, and
 higher-order functions.
 
-Inspiration: **[Carp](https://carp-lang.github.io/Carp/LanguageGuide.html)**, a Lisp with ML/Rust-like semantics. 
-HiLisp borrows Carp's vocabulary of special forms: `defn`, `def`, `fn`, `let`, `do`, `cond`, `quote`, and `use`.
+Inspiration: **[Carp](https://carp-lang.github.io/Carp/LanguageGuide.html)** (special form vocabulary) and **[Jank](https://jank-lang.org/)** (`loop`/`recur` tail-recursive iteration).
 
 ## Quick start
 
@@ -41,6 +40,8 @@ or nil. All code is an s-expression.
 | `(let (x 1 y 2) body)` | Local bindings |
 | `(do e1 e2 …)` | Sequence; returns last value |
 | `(quote x)` / `'x` | Quote — return unevaluated |
+| `(loop [x init …] body)` | Tail-recursive loop with named bindings |
+| `(recur v1 v2 …)` | Restart the enclosing `loop` with new values — no stack growth |
 
 ### Built-in functions
 
@@ -65,7 +66,7 @@ or nil. All code is an s-expression.
 (println (add10 32))   ; 42
 ```
 
-### Example — FizzBuzz
+### Example — FizzBuzz with `loop`/`recur`
 
 ```lisp
 (defn mod (a b) (- a (* b (/ a b))))
@@ -77,12 +78,23 @@ or nil. All code is an s-expression.
     (= (mod n 5)  0) "buzz"
     true             n))
 
-(defn loop (i max)
-  (if (<= i max)
-    (do (println (fizzbuzz i)) (loop (+ i 1) max))
-    0))
+(loop [i 1]
+  (if (<= i 20)
+    (do (println (fizzbuzz i)) (recur (+ i 1)))
+    nil))
+```
 
-(loop 1 20)
+### Example — accumulator with `loop`/`recur`
+
+```lisp
+; Sum 1..100 without recursion or stack growth
+(def total
+  (loop [i 1 acc 0]
+    (if (> i 100)
+      acc
+      (recur (+ i 1) (+ acc i)))))
+
+(println total)   ; 5050
 ```
 
 ## Examples
@@ -100,6 +112,7 @@ The `examples/` directory contains runnable `.hl` files:
 | `sorting.hl` | Merge sort and insertion sort |
 | `statistics.hl` | Mean, median, variance, standard deviation |
 | `higher_order.hl` | `scan`, `windows`, `flat_map`, `partition`, `enumerate` |
+| `loop.hl` | `loop`/`recur` — countdown, accumulator sum, O(n) Fibonacci |
 
 ## Source layout
 
@@ -130,5 +143,5 @@ See [docs/hilisp-hica-guide.md](docs/hilisp-hica-guide.md) for the full function
 ## Known limitations
 
 - `println` uses `lval_show`, so strings display with quotes.
-- No tail-call optimisation — deep recursion will stack-overflow.
+- Recursive `defn` functions without `loop`/`recur` will stack-overflow on deep input — use `loop`/`recur` for iteration.
 

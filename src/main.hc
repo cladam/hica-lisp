@@ -16,8 +16,11 @@ fun eval_str(src: string, env: Env) {
 fun run_forms(tokens: list<string>, env: Env) : Env {
   if length(tokens) > 0 {
     let (expr, rest) = parse_tokens(tokens)
-    let (_, env2) = eval(expr, env)
-    run_forms(rest, env2)
+    let (result, env2) = eval(expr, env)
+    match result {
+      LError(msg) => { eprintln("Error: " + msg); run_forms(rest, env2) }
+      _           => run_forms(rest, env2)
+    }
   } else {
     env
   }

@@ -1,0 +1,29 @@
+; loop/recur — Jank-inspired tail-recursive iteration
+;
+; (loop [x init ...] body) establishes loop bindings like let.
+; (recur new-x ...) restarts the loop with new values — no stack growth.
+
+; Countdown
+(loop [n 5]
+  (if (= n 0)
+    (println "done!")
+    (do
+      (println n)
+      (recur (- n 1)))))
+
+; Sum 1..100 — accumulator pattern
+(def total
+  (loop [i 1 acc 0]
+    (if (> i 100)
+      acc
+      (recur (+ i 1) (+ acc i)))))
+(println total)
+
+; Fibonacci in O(n) with loop — no exponential recursion
+(defn fib (n)
+  (loop [i n a 0 b 1]
+    (if (= i 0)
+      a
+      (recur (- i 1) b (+ a b)))))
+(println (fib 10))
+(println (fib 30))

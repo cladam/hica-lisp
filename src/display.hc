@@ -12,7 +12,9 @@ pub fun lval_show(v: LVal) : string =>
     LNil               => "nil",
     LList(items)       => "(" + join(map(items, lval_show), " ") + ")",
     LBuiltin(name)     => "#<builtin:" + name + ">",
-    LFun(fname, params, _, _) => if fname == "" { "#<fn(" + join(params, " ") + ")>" } else { "#<fn:" + fname + "(" + join(params, " ") + ")>" }
+    LFun(fname, params, _, _) => if fname == "" { "#<fn(" + join(params, " ") + ")>" } else { "#<fn:" + fname + "(" + join(params, " ") + ")>" },
+    LRecur(_)          => "#<recur>",
+    LError(msg)        => "Error: " + msg
   }
 
 // Display a value for human output — strings printed without surrounding quotes
