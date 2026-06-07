@@ -20,7 +20,7 @@ pub fun tok_col(t: Token) : int     => match t { Token(_, _, c) => c }
 // numbers, symbols, strings, booleans, lists, functions, and nil
 pub type LVal {
   LNum(n: int),
-  LSym(name: string),
+  LSym(name: string, span: Span),
   LStr(s: string),
   LBool(b: bool),
   LList(items: list<LVal>),
@@ -31,8 +31,10 @@ pub type LVal {
   LNil
 }
 
-// Convenience constructor — creates an LError with no source location attached
-pub fun lerror(msg: string) : LVal => LError(msg, NoSpan)
+// Convenience constructors
+pub fun lsym(name: string) : LVal      => LSym(name, NoSpan)
+pub fun lerror_at(msg: string, span: Span) : LVal => LError(msg, span)
+pub fun lerror(msg: string) : LVal     => LError(msg, NoSpan)
 
 // Env and LVal are mutually recursive — LFun captures an Env, Env holds LVals
 // Bindings are a Hica map (list<(string, LVal)>); parent chains implement lexical scope

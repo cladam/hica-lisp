@@ -19,7 +19,7 @@ pub fun parse_tokens(tokens: list<Token>) : (LVal, list<Token>) =>
 // Reader macro: 'x => (quote x)
 pub fun parse_quote(tokens: list<Token>) : (LVal, list<Token>) {
   let (v, rest) = parse_tokens(tokens)
-  (LList([LSym("quote"), v]), rest)
+  (LList([lsym("quote"), v]), rest)
 }
 
 // parse_list accumulates items until ")" then returns LList
@@ -42,7 +42,7 @@ pub fun parse_atom(t: Token) : LVal =>
       if tok_text(t) == "true" { LBool(true) }
       else if tok_text(t) == "false" { LBool(false) }
       else if starts_with(tok_text(t), "\"") { LStr(tok_text(t)[1:str_length(tok_text(t)) - 1]) }
-      else { LSym(tok_text(t)) }
+      else { LSym(tok_text(t), Span(tok_line(t), tok_col(t))) }
   }
 
 test "parse_atom: numbers and symbols" {

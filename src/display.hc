@@ -2,18 +2,51 @@
 import "./ast"
 import "./types"
 
-// Format a span prefix for error messages — empty string when no location is known
+// Format a span prefix for error messages — used in the REPL where source is not available
 pub fun span_prefix(span: Span) : string =>
   match span {
     Span(l, c) => "[" + show(l) + ":" + show(c) + "] ",
     NoSpan     => ""
   }
 
+// Get the Nth line (1-based) from a pre-split list of lines
+pub fun nth_line(lines: list<string>, n: int) : string =>
+  match lines {
+    []          => "",
+    [h, ..rest] => if n == 1 { h } else { nth_line(rest, n - 1) }
+  }
+
+// Repeat a string n times (used to build caret padding)
+pub fun str_repeat(s: string, n: int) : string =>
+  if n <= 0 { "" } else { s + str_repeat(s, n - 1) }
+
+// Render a Rust-style source snippet with a caret pointing at the error location.
+//
+//   --> path:3:5
+//    |
+//  3 | (+ foo 1)
+//    |    ^
+//
+// Returns an empty string when no span is available.
+pub fun render_snippet(source: string, path: string, span: Span) : string =>
+  match span {
+    NoSpan     => "",
+    Span(l, c) => {
+      let src_line = nth_line(split(source, "\n"), l)
+      let ln_str   = show(l)
+      let pad      = str_repeat(" ", str_length(ln_str) + 2)
+      "  --> " + path + ":" + ln_str + ":" + show(c) + "\n" +
+      pad + "|\n" +
+      " " + ln_str + " | " + src_line + "\n" +
+      pad + "| " + str_repeat(" ", c - 1) + "^"
+    }
+  }
+
 // Convert any LVal to its printed representation (strings get quotes — Haskell-style show)
 pub fun lval_show(v: LVal) : string =>
   match v {
     LNum(n)            => show(n),
-    LSym(name)         => name,
+    LSym(name, _)      => name,
     LStr(s)            => "\"" + s + "\"",
     LBool(b)           => if b { "true" } else { "false" },
     LNil               => "nil",

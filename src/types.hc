@@ -18,6 +18,15 @@ pub fun env_set(e: Env, key: string, v: LVal) : Env =>
     Env(bs, parent) => Env(map_set(bs, key, v), parent)
   }
 
+// Check whether a name is bound anywhere in the environment chain
+pub fun env_has(e: Env, key: string) : bool => match e {
+  EmptyEnv              => false,
+  Env(bindings, parent) => match map_get(bindings, key) {
+    Some(_) => true,
+    None    => env_has(parent, key)
+  }
+}
+
 test "env_get returns LNil for missing key" {
   let r      = env_get(EmptyEnv, "x")
   let is_nil = match r { LNil => true, _ => false }

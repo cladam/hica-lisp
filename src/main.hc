@@ -13,13 +13,21 @@ fun eval_str(src: string, env: Env) {
 }
 
 // Eval all top-level forms in a token stream; returns the final env
-fun run_forms(tokens, env: Env) : Env {
+fun run_forms(tokens, source: string, path: string, env: Env) : Env {
   if length(tokens) > 0 {
     let (expr, rest) = parse_tokens(tokens)
     let (result, env2) = eval(expr, env)
     match result {
-      LError(_, _) => { eprintln(lval_show(result)); run_forms(rest, env2) }
-      _           => run_forms(rest, env2)
+      LError(msg, span) => {
+        let snip = render_snippet(source, path, span)
+        if str_length(snip) > 0 {
+          eprintln("error: " + msg + "\n" + snip)
+        } else {
+          eprintln("error: " + msg)
+        }
+        run_forms(rest, source, path, env2)
+      }
+      _ => run_forms(rest, source, path, env2)
     }
   } else {
     env
@@ -41,8 +49,8 @@ fun repl(env: Env) {
 // Load one file into an existing env; returns the updated env
 fun load_file(path: string, env: Env) : Env {
   match read_file(path) {
-    Ok(content) => run_forms(tokenise(content), env),
-    Err(msg)    => { eprintln("error: {path}: {msg}"); env }
+    Ok(content) => run_forms(tokenise(content), content, path, env),
+    Err(msg)    => { eprintln("error: " + path + ": " + msg); env }
   }
 }
 
