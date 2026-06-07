@@ -12,7 +12,7 @@ pub fun eval(expr: LVal, env: Env) : (LVal, Env) => match expr {
   LNil         => (LNil, env),
   LSym(name, span) => match env_has(env, name) {
     true  => (env_get(env, name), env),
-    false => (lerror_at("'" + name + "' is not defined", span), env)
+    false => (lerror_at("eval/undefined-symbol", "'" + name + "' is not defined", span), env)
   },
   LList(items) => eval_list(items, env),
   _            => (LNil, env)
@@ -168,15 +168,15 @@ pub fun bind_params(params: list<string>, args: list<LVal>, env: Env) : Env =>
 // Return the first LError found in an argument list, or LNil if none
 pub fun first_error(args: list<LVal>) : LVal =>
   match args {
-    []                 => LNil,
-    [LError(m, s), ..] => LError(m, s),
-    [_, ..rest]        => first_error(rest)
+    []                          => LNil,
+    [LError(i, m, n, s), ..]   => LError(i, m, n, s),
+    [_, ..rest]                 => first_error(rest)
   }
 
 // Apply a callable to evaluated arguments, propagating any error values
 pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
   let err     = first_error(args)
-  let has_err = match err { LError(_, _) => true, _ => false }
+  let has_err = match err { LError(_, _, _, _) => true, _ => false }
   if has_err {
     (err, env)
   } else {
@@ -189,7 +189,7 @@ pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
         (result, env)  // discard inner scope, return calling env
       },
       LBuiltin(name) => apply_builtin(name, args, env),
-      _              => (lerror("not a function"), env)
+      _              => (lerror("eval/not-a-function", "not a function"), env)
     }
   }
 }
@@ -197,7 +197,7 @@ pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
 pub fun eval_call(func: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
   let (f, env2) = eval(func, env)
   // Short-circuit: if function lookup itself produced an error, skip arg eval
-  let is_err = match f { LError(_, _) => true, _ => false }
+  let is_err = match f { LError(_, _, _, _) => true, _ => false }
   if is_err {
     (f, env2)
   } else {
@@ -218,7 +218,7 @@ pub fun eval_eval(src_expr: LVal, env: Env) : (LVal, Env) {
       let (expr, _) = parse_tokens(tokens)
       eval(expr, env2)
     },
-    _ => (lerror("eval expects a string"), env2)
+    _ => (lerror("eval/type-error", "eval expects a string"), env2)
   }
 }
 

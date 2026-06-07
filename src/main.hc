@@ -4,12 +4,23 @@ import "std/cli"
 import "std/io"
 import "./lisp"
 
-// Parse and eval one expression, return display string + new env
+// Parse and eval one expression; show snippet on error; return display string + new env
 fun eval_str(src: string, env: Env) {
   let tokens = tokenise(src)
   let (expr, _) = parse_tokens(tokens)
   let (result, env2) = eval(expr, env)
-  (lval_show(result), env2)
+  match result {
+    LError(id, msg, note, span) => {
+      let snip = render_snippet(src, "<repl>", id, note, span)
+      if str_length(snip) > 0 {
+        eprintln("error[" + id + "]: " + msg + "\n" + snip)
+      } else {
+        eprintln("error[" + id + "]: " + msg)
+      }
+      ("nil", env2)
+    }
+    _ => (lval_display(result), env2)
+  }
 }
 
 // Eval all top-level forms in a token stream; returns the final env
@@ -18,12 +29,12 @@ fun run_forms(tokens, source: string, path: string, env: Env) : Env {
     let (expr, rest) = parse_tokens(tokens)
     let (result, env2) = eval(expr, env)
     match result {
-      LError(msg, span) => {
-        let snip = render_snippet(source, path, span)
+      LError(id, msg, note, span) => {
+        let snip = render_snippet(source, path, id, note, span)
         if str_length(snip) > 0 {
-          eprintln("error: " + msg + "\n" + snip)
+          eprintln("error[" + id + "]: " + msg + "\n" + snip)
         } else {
-          eprintln("error: " + msg)
+          eprintln("error[" + id + "]: " + msg)
         }
         run_forms(rest, source, path, env2)
       }
@@ -41,7 +52,7 @@ fun repl(env: Env) {
     println("bye!")
   } else {
     let (out, env2) = eval_str(src, env)
-    println(out)
+    if out != "nil" { println(out) }
     repl(env2)
   }
 }

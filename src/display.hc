@@ -26,19 +26,21 @@ pub fun str_repeat(s: string, n: int) : string =>
 //    |
 //  3 | (+ foo 1)
 //    |    ^
+//    = note: 'foo' has not been defined
 //
 // Returns an empty string when no span is available.
-pub fun render_snippet(source: string, path: string, span: Span) : string =>
+pub fun render_snippet(source: string, path: string, id: string, note: string, span: Span) : string =>
   match span {
     NoSpan     => "",
     Span(l, c) => {
-      let src_line = nth_line(split(source, "\n"), l)
-      let ln_str   = show(l)
-      let pad      = str_repeat(" ", str_length(ln_str) + 2)
+      let src_line  = nth_line(split(source, "\n"), l)
+      let ln_str    = show(l)
+      let pad       = str_repeat(" ", str_length(ln_str) + 2)
+      let note_line = if str_length(note) > 0 { "\n" + pad + "= note: " + note } else { "" }
       "  --> " + path + ":" + ln_str + ":" + show(c) + "\n" +
       pad + "|\n" +
       " " + ln_str + " | " + src_line + "\n" +
-      pad + "| " + str_repeat(" ", c - 1) + "^"
+      pad + "| " + str_repeat(" ", c - 1) + "^" + note_line
     }
   }
 
@@ -54,7 +56,7 @@ pub fun lval_show(v: LVal) : string =>
     LBuiltin(name)     => "#<builtin:" + name + ">",
     LFun(fname, params, _, _) => if fname == "" { "#<fn(" + join(params, " ") + ")>" } else { "#<fn:" + fname + "(" + join(params, " ") + ")>" },
     LRecur(_)          => "#<recur>",
-    LError(msg, span)        => span_prefix(span) + "Error: " + msg
+    LError(id, msg, _, span) => span_prefix(span) + "error[" + id + "]: " + msg
   }
 
 // Display a value for human output — strings printed without surrounding quotes

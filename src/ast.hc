@@ -27,14 +27,15 @@ pub type LVal {
   LFun(fname: string, params: list<string>, body: LVal, env: Env),
   LBuiltin(name: string),
   LRecur(args: list<LVal>),
-  LError(msg: string, span: Span),
+  LError(id: string, msg: string, note: string, span: Span),
   LNil
 }
 
 // Convenience constructors
-pub fun lsym(name: string) : LVal      => LSym(name, NoSpan)
-pub fun lerror_at(msg: string, span: Span) : LVal => LError(msg, span)
-pub fun lerror(msg: string) : LVal     => LError(msg, NoSpan)
+pub fun lsym(name: string) : LVal => LSym(name, NoSpan)
+pub fun lerror_full(id: string, msg: string, note: string, span: Span) : LVal => LError(id, msg, note, span)
+pub fun lerror_at(id: string, msg: string, span: Span) : LVal => LError(id, msg, "", span)
+pub fun lerror(id: string, msg: string) : LVal => LError(id, msg, "", NoSpan)
 
 // Env and LVal are mutually recursive — LFun captures an Env, Env holds LVals
 // Bindings are a Hica map (list<(string, LVal)>); parent chains implement lexical scope
