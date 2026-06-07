@@ -55,11 +55,21 @@ pub fun eval_list(items: list<LVal>, env: Env) : (LVal, Env) =>
     [LSym("recur"), ..args] => eval_recur(args, env),
 
     // loop — Jank-inspired tail-recursive iteration without stack growth
-    [LSym("loop"), LList(bindings), body] => eval_loop(bindings, body, env),
+    // Only fires as a special form when the user has not defined a function named loop;
+    // otherwise (e.g. fizzbuzz defines its own loop), defer to the function call path.
+    [LSym("loop"), LList(bindings), body] => eval_loop_or_call(bindings, body, env),
 
     // function call
     [func, ..args] => eval_call(func, args, env),
     _ => (LNil, env)
+  }
+
+// If the user has bound a function named "loop" in scope, call it.
+// Otherwise treat (loop [bindings] body) as the tail-recursion special form.
+pub fun eval_loop_or_call(bindings: list<LVal>, body: LVal, env: Env) : (LVal, Env) =>
+  match env_get(env, "loop") {
+    LFun(_, _, _, _) => eval_call(LSym("loop"), [LList(bindings), body], env),
+    _                => eval_loop(bindings, body, env)
   }
 
 pub fun eval_cond(clauses: list<LVal>, env: Env) : (LVal, Env) =>
