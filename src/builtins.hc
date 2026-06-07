@@ -400,7 +400,8 @@ pub fun make_env() : Env {
                "trim", "to-upper", "to-lower", "ends-with", "replace", "join",
                "parse-int",
                "read-file", "input", "random"]
-  fold(names, EmptyEnv, (e, name) => env_set(e, name, LBuiltin(name)))
+  let base = fold(names, EmptyEnv, (e, name) => env_set(e, name, LBuiltin(name)))
+  env_set(base, "nil", LNil)
 }
 
 test "arithmetic" {

@@ -47,7 +47,7 @@ pub fun parse_atom(t: Token) : LVal =>
 
 test "parse_atom: numbers and symbols" {
   let r1 = match parse_atom(mk_tok("42"))  { LNum(n) => n == 42,   _ => false }
-  let r2 = match parse_atom(mk_tok("foo")) { LSym(s) => s == "foo", _ => false }
+  let r2 = match parse_atom(mk_tok("foo")) { LSym(s, _) => s == "foo", _ => false }
   assert(r1)
   assert(r2)
 }
@@ -62,13 +62,15 @@ test "parse_atom: booleans" {
 test "parse_tokens: parses a list and consumes closing paren" {
   let (v, rest) = parse_tokens([mk_tok("("), mk_tok("+"), mk_tok("1"), mk_tok("2"), mk_tok(")")])
   let is_list   = match v { LList(_) => true, _ => false }
-  assert_eq(rest, [])
+  let rest_empty = match rest { [] => true, _ => false }
+  assert(rest_empty)
   assert(is_list)
 }
 
 test "parse_tokens: quote shorthand expands to (quote x)" {
   let (v, rest) = parse_tokens([mk_tok("'"), mk_tok("x")])
-  let is_quote  = match v { LList([LSym(q), LSym(_)]) => q == "quote", _ => false }
-  assert_eq(rest, [])
+  let is_quote  = match v { LList([LSym(q, _), LSym(_, _)]) => q == "quote", _ => false }
+  let rest_empty = match rest { [] => true, _ => false }
+  assert(rest_empty)
   assert(is_quote)
 }
