@@ -163,7 +163,7 @@ pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) =>
       (result, env)  // discard inner scope, return calling env
     },
     LBuiltin(name) => apply_builtin(name, args, env),
-    _              => (LError("not a function"), env)
+    _              => (lerror("not a function"), env)
   }
 
 pub fun eval_call(func: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
@@ -184,7 +184,7 @@ pub fun eval_eval(src_expr: LVal, env: Env) : (LVal, Env) {
       let (expr, _) = parse_tokens(tokens)
       eval(expr, env2)
     },
-    _ => (LError("eval expects a string"), env2)
+    _ => (lerror("eval expects a string"), env2)
   }
 }
 

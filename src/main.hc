@@ -13,12 +13,12 @@ fun eval_str(src: string, env: Env) {
 }
 
 // Eval all top-level forms in a token stream; returns the final env
-fun run_forms(tokens: list<string>, env: Env) : Env {
+fun run_forms(tokens, env: Env) : Env {
   if length(tokens) > 0 {
     let (expr, rest) = parse_tokens(tokens)
     let (result, env2) = eval(expr, env)
     match result {
-      LError(msg) => { eprintln("Error: " + msg); run_forms(rest, env2) }
+      LError(_, _) => { eprintln(lval_show(result)); run_forms(rest, env2) }
       _           => run_forms(rest, env2)
     }
   } else {

@@ -2,6 +2,13 @@
 import "./ast"
 import "./types"
 
+// Format a span prefix for error messages — empty string when no location is known
+pub fun span_prefix(span: Span) : string =>
+  match span {
+    Span(l, c) => "[" + show(l) + ":" + show(c) + "] ",
+    NoSpan     => ""
+  }
+
 // Convert any LVal to its printed representation (strings get quotes — Haskell-style show)
 pub fun lval_show(v: LVal) : string =>
   match v {
@@ -14,7 +21,7 @@ pub fun lval_show(v: LVal) : string =>
     LBuiltin(name)     => "#<builtin:" + name + ">",
     LFun(fname, params, _, _) => if fname == "" { "#<fn(" + join(params, " ") + ")>" } else { "#<fn:" + fname + "(" + join(params, " ") + ")>" },
     LRecur(_)          => "#<recur>",
-    LError(msg)        => "Error: " + msg
+    LError(msg, span)        => span_prefix(span) + "Error: " + msg
   }
 
 // Display a value for human output — strings printed without surrounding quotes

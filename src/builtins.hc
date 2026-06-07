@@ -22,14 +22,14 @@ pub fun builtin_sub(args: list<LVal>) : LVal =>
 pub fun builtin_div(args: list<LVal>) : LVal =>
   match args {
     [x, y] => LNum(lval_int(x) / lval_int(y)),
-    _      => LError("/ expects 2 args")
+    _      => lerror("/ expects 2 args")
   }
 
 // Comparison — numeric, 2 args; takes an operator lambda for reuse across <, >, <=, >=
 pub fun builtin_cmp(args: list<LVal>, op: (int, int) -> bool) : LVal =>
   match args {
     [LNum(a), LNum(b)] => LBool(op(a, b)),
-    _                  => LError("comparison expects 2 numbers")
+    _                  => lerror("comparison expects 2 numbers")
   }
 
 // Equality — structural, works across types
@@ -40,26 +40,26 @@ pub fun builtin_eq(args: list<LVal>) : LVal =>
     [LStr(a),  LStr(b)]  => LBool(a == b),
     [LNil,     LNil]     => LBool(true),
     [_, _]               => LBool(false),
-    _                    => LError("= expects 2 args")
+    _                    => lerror("= expects 2 args")
   }
 
 // Logic
 pub fun builtin_not(args: list<LVal>) : LVal =>
   match args {
     [v] => if is_truthy(v) { LBool(false) } else { LBool(true) },
-    _   => LError("not expects 1 arg")
+    _   => lerror("not expects 1 arg")
   }
 
 pub fun builtin_and(args: list<LVal>) : LVal =>
   match args {
     [a, b] => if is_truthy(a) { b } else { LBool(false) },
-    _      => LError("and expects 2 args")
+    _      => lerror("and expects 2 args")
   }
 
 pub fun builtin_or(args: list<LVal>) : LVal =>
   match args {
     [a, b] => if is_truthy(a) { a } else { b },
-    _      => LError("or expects 2 args")
+    _      => lerror("or expects 2 args")
   }
 
 // Null/empty predicates
@@ -67,39 +67,39 @@ pub fun builtin_null(args: list<LVal>) : LVal =>
   match args {
     [LNil] => LBool(true),
     [_]    => LBool(false),
-    _      => LError("null? expects 1 arg")
+    _      => lerror("null? expects 1 arg")
   }
 
 pub fun builtin_empty(args: list<LVal>) : LVal =>
   match args {
     [LList(items)] => LBool(length(items) == 0),
     [LStr(s)]      => LBool(str_length(s) == 0),
-    _              => LError("empty? expects a list or string")
+    _              => lerror("empty? expects a list or string")
   }
 
 // List primitives — the classic Lisp trio plus length
 pub fun builtin_car(args: list<LVal>) : LVal =>
   match args {
     [LList(items)] => match items { [h, ..] => h, [] => LNil },
-    _              => LError("car expects a list")
+    _              => lerror("car expects a list")
   }
 
 pub fun builtin_cdr(args: list<LVal>) : LVal =>
   match args {
     [LList(items)] => match items { [_, ..rest] => LList(rest), [] => LList([]) },
-    _              => LError("cdr expects a list")
+    _              => lerror("cdr expects a list")
   }
 
 pub fun builtin_cons(args: list<LVal>) : LVal =>
   match args {
     [v, LList(items)] => LList([v] + items),
-    _                 => LError("cons expects a value and a list")
+    _                 => lerror("cons expects a value and a list")
   }
 
 pub fun builtin_length(args: list<LVal>) : LVal =>
   match args {
     [LList(items)] => LNum(length(items)),
-    _              => LError("length expects a list")
+    _              => lerror("length expects a list")
   }
 
 // Local recursive helpers — avoids passing functions as higher-order values cross-file,
@@ -134,9 +134,9 @@ pub fun builtin_write_file(args: list<LVal>, env: Env) : (LVal, Env) =>
     [LStr(path), LStr(content)] =>
       match write_file(path, content) {
         Ok(_)      => (LNil, env),
-        Err(msg)   => (LError(msg), env)
+        Err(msg)   => (lerror(msg), env)
       },
-    _ => (LError("write-file expects (path content)"), env)
+    _ => (lerror("write-file expects (path content)"), env)
   }
 
 // (exec cmd) — run a shell command, return stdout trimmed; error string on failure
@@ -145,23 +145,23 @@ pub fun builtin_exec(args: list<LVal>, env: Env) : (LVal, Env) =>
     [LStr(cmd)] =>
       match exec(cmd) {
         Ok(out)  => (LStr(trim(out)), env),
-        Err(msg) => (LError(msg), env)
+        Err(msg) => (lerror(msg), env)
       },
-    _ => (LError("exec expects (cmd)"), env)
+    _ => (lerror("exec expects (cmd)"), env)
   }
 
 // (starts-with str prefix) — true if str begins with prefix
 pub fun builtin_starts_with(args: list<LVal>) : LVal =>
   match args {
     [LStr(s), LStr(pre)] => LBool(starts_with(s, pre)),
-    _                    => LError("starts-with expects (str prefix)")
+    _                    => lerror("starts-with expects (str prefix)")
   }
 
 // (lines str) — split str on newlines, return list of strings
 pub fun builtin_lines(args: list<LVal>) : LVal =>
   match args {
     [LStr(s)] => LList(map(split(s, "\n"), (ln) => LStr(ln))),
-    _         => LError("lines expects a string")
+    _         => lerror("lines expects a string")
   }
 
 // (contains str sub) — true if str contains the substring sub
@@ -178,7 +178,7 @@ pub fun str_has_sub(s: string, sub: string) : bool =>
 pub fun builtin_contains(args: list<LVal>) : LVal =>
   match args {
     [LStr(s), LStr(sub)] => LBool(str_has_sub(s, sub)),
-    _                    => LError("contains expects (str sub)")
+    _                    => lerror("contains expects (str sub)")
   }
 
 // (assert condition) or (assert condition "message")
@@ -188,11 +188,11 @@ pub fun builtin_assert(args: list<LVal>) : LVal =>
   match args {
     [cond] =>
       if is_truthy(cond) { LNil }
-      else { LError("assertion failed") },
+      else { lerror("assertion failed") },
     [cond, LStr(msg)] =>
       if is_truthy(cond) { LNil }
-      else { LError("assertion failed: " + msg) },
-    _ => LError("assert expects 1 or 2 args")
+      else { lerror("assertion failed: " + msg) },
+    _ => lerror("assert expects 1 or 2 args")
   }
 
 // (assert-eq a b) — structural equality check with auto-generated message
@@ -204,9 +204,9 @@ pub fun builtin_assert_eq(args: list<LVal>) =>
     [a, b] =>
       match builtin_eq([a, b]) {
         LBool(true) => LNil,
-        _           => LError("expected " + show_all([b]) + ", got " + show_all([a]))
+        _           => lerror("expected " + show_all([b]) + ", got " + show_all([a]))
       },
-    _ => LError("assert-eq expects 2 args")
+    _ => lerror("assert-eq expects 2 args")
   }
 
 // ── String extras ────────────────────────────────────────────────────────────
@@ -215,7 +215,7 @@ pub fun builtin_assert_eq(args: list<LVal>) =>
 pub fun builtin_str_length(args: list<LVal>) : LVal =>
   match args {
     [LStr(s)] => LNum(str_length(s)),
-    _         => LError("str-length expects a string")
+    _         => lerror("str-length expects a string")
   }
 
 // (str-slice s from to) or (str-slice s from) — extract a substring
@@ -225,57 +225,57 @@ pub fun builtin_str_slice(args: list<LVal>) : LVal =>
       match rest {
         [LNum(j)] => LStr(s[i:j]),
         []        => LStr(s[i:]),
-        _         => LError("str-slice expects (str from) or (str from to)")
+        _         => lerror("str-slice expects (str from) or (str from to)")
       },
-    _ => LError("str-slice expects (str from) or (str from to)")
+    _ => lerror("str-slice expects (str from) or (str from to)")
   }
 
 // (str-at s i) — single character at index i returned as a one-char string
 pub fun builtin_str_at(args: list<LVal>) : LVal =>
   match args {
     [LStr(s), LNum(i)] => LStr(s[i:i+1]),
-    _ => LError("str-at expects (str index)")
+    _ => lerror("str-at expects (str index)")
   }
 
 // (str-split s sep) — split string on separator, return list of strings
 pub fun builtin_str_split(args: list<LVal>) : LVal =>
   match args {
     [LStr(s), LStr(sep)] => LList(map(split(s, sep), (part) => LStr(part))),
-    _ => LError("str-split expects (str sep)")
+    _ => lerror("str-split expects (str sep)")
   }
 
 // (trim s) — strip leading and trailing whitespace
 pub fun builtin_trim(args: list<LVal>) : LVal =>
   match args {
     [LStr(s)] => LStr(trim(s)),
-    _         => LError("trim expects a string")
+    _         => lerror("trim expects a string")
   }
 
 // (to-upper s) / (to-lower s) — case conversion
 pub fun builtin_to_upper(args: list<LVal>) : LVal =>
   match args {
     [LStr(s)] => LStr(to_upper(s)),
-    _         => LError("to-upper expects a string")
+    _         => lerror("to-upper expects a string")
   }
 
 pub fun builtin_to_lower(args: list<LVal>) : LVal =>
   match args {
     [LStr(s)] => LStr(to_lower(s)),
-    _         => LError("to-lower expects a string")
+    _         => lerror("to-lower expects a string")
   }
 
 // (ends-with s suffix) — true if s ends with suffix
 pub fun builtin_ends_with(args: list<LVal>) : LVal =>
   match args {
     [LStr(s), LStr(suf)] => LBool(ends_with(s, suf)),
-    _ => LError("ends-with expects (str suffix)")
+    _ => lerror("ends-with expects (str suffix)")
   }
 
 // (replace s old new) — replace all occurrences of old in s with new
 pub fun builtin_replace(args: list<LVal>) : LVal =>
   match args {
     [LStr(s), LStr(old), LStr(new_str)] => LStr(replace(s, old, new_str)),
-    _ => LError("replace expects (str old new)")
+    _ => lerror("replace expects (str old new)")
   }
 
 // Helper: convert a list of LVals to a list of their display strings
@@ -289,7 +289,7 @@ pub fun lvals_to_strings(items: list<LVal>) : list<string> =>
 pub fun builtin_join(args: list<LVal>) : LVal =>
   match args {
     [LStr(sep), LList(items)] => LStr(join(lvals_to_strings(items), sep)),
-    _ => LError("join expects (sep list)")
+    _ => lerror("join expects (sep list)")
   }
 
 // ── Parsing ───────────────────────────────────────────────────────────────────
@@ -302,7 +302,7 @@ pub fun builtin_parse_int(args: list<LVal>) : LVal =>
         Some(n) => LNum(n),
         None    => LNil
       },
-    _ => LError("parse-int expects a string")
+    _ => lerror("parse-int expects a string")
   }
 
 // ── IO ────────────────────────────────────────────────────────────────────────
@@ -313,9 +313,9 @@ pub fun builtin_read_file(args: list<LVal>, env: Env) : (LVal, Env) =>
     [LStr(path)] =>
       match read_file(path) {
         Ok(content) => (LStr(content), env),
-        Err(msg)    => (LError(msg), env)
+        Err(msg)    => (lerror(msg), env)
       },
-    _ => (LError("read-file expects a path string"), env)
+    _ => (lerror("read-file expects a path string"), env)
   }
 
 // (input) or (input "prompt") — read a line from stdin; prompt is printed first.
@@ -325,7 +325,7 @@ pub fun builtin_input(args: list<LVal>, env: Env) : (LVal, Env) =>
   match args {
     []        => (LStr(input("")), env),
     [LStr(p)] => (LStr(input(p)), env),
-    _ => (LError("input expects 0 or 1 string arg"), env)
+    _ => (lerror("input expects 0 or 1 string arg"), env)
   }
 
 // (random lo hi) — random integer in [lo, hi] inclusive; no annotation so Koka
@@ -333,7 +333,7 @@ pub fun builtin_input(args: list<LVal>, env: Env) : (LVal, Env) =>
 pub fun builtin_random(args: list<LVal>) =>
   match args {
     [LNum(lo), LNum(hi)] => LNum(random(lo, hi)),
-    _ => LError("random expects (lo hi)")
+    _ => lerror("random expects (lo hi)")
   }
 
 // Dispatch — maps a builtin name to its implementation
@@ -384,7 +384,7 @@ pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
     "read-file"   => builtin_read_file(args, env),
     "input"       => builtin_input(args, env),
     "random"      => (builtin_random(args), env),
-    _              => (LError("unknown builtin: " + name), env)
+    _              => (lerror("unknown builtin: " + name), env)
   }
 
 // Build the initial environment with all builtins pre-registered
