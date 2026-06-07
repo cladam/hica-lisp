@@ -1,5 +1,6 @@
 // builtins.hc — the primitive layer of HiLisp
 // Each builtin is a named function that operates on evaluated LVal arguments
+import "std/io"
 import "./ast"
 import "./types"
 import "./display"
@@ -208,6 +209,133 @@ pub fun builtin_assert_eq(args: list<LVal>) =>
     _ => LError("assert-eq expects 2 args")
   }
 
+// ── String extras ────────────────────────────────────────────────────────────
+
+// (str-length s) — number of characters
+pub fun builtin_str_length(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s)] => LNum(str_length(s)),
+    _         => LError("str-length expects a string")
+  }
+
+// (str-slice s from to) or (str-slice s from) — extract a substring
+pub fun builtin_str_slice(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s), LNum(i), ..rest] =>
+      match rest {
+        [LNum(j)] => LStr(s[i:j]),
+        []        => LStr(s[i:]),
+        _         => LError("str-slice expects (str from) or (str from to)")
+      },
+    _ => LError("str-slice expects (str from) or (str from to)")
+  }
+
+// (str-at s i) — single character at index i returned as a one-char string
+pub fun builtin_str_at(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s), LNum(i)] => LStr(s[i:i+1]),
+    _ => LError("str-at expects (str index)")
+  }
+
+// (str-split s sep) — split string on separator, return list of strings
+pub fun builtin_str_split(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s), LStr(sep)] => LList(map(split(s, sep), (part) => LStr(part))),
+    _ => LError("str-split expects (str sep)")
+  }
+
+// (trim s) — strip leading and trailing whitespace
+pub fun builtin_trim(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s)] => LStr(trim(s)),
+    _         => LError("trim expects a string")
+  }
+
+// (to-upper s) / (to-lower s) — case conversion
+pub fun builtin_to_upper(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s)] => LStr(to_upper(s)),
+    _         => LError("to-upper expects a string")
+  }
+
+pub fun builtin_to_lower(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s)] => LStr(to_lower(s)),
+    _         => LError("to-lower expects a string")
+  }
+
+// (ends-with s suffix) — true if s ends with suffix
+pub fun builtin_ends_with(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s), LStr(suf)] => LBool(ends_with(s, suf)),
+    _ => LError("ends-with expects (str suffix)")
+  }
+
+// (replace s old new) — replace all occurrences of old in s with new
+pub fun builtin_replace(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s), LStr(old), LStr(new_str)] => LStr(replace(s, old, new_str)),
+    _ => LError("replace expects (str old new)")
+  }
+
+// Helper: convert a list of LVals to a list of their display strings
+pub fun lvals_to_strings(items: list<LVal>) : list<string> =>
+  match items {
+    []            => [],
+    [v, ..rest]   => [lval_display(v)] + lvals_to_strings(rest)
+  }
+
+// (join sep list) — join list of values with separator
+pub fun builtin_join(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(sep), LList(items)] => LStr(join(lvals_to_strings(items), sep)),
+    _ => LError("join expects (sep list)")
+  }
+
+// ── Parsing ───────────────────────────────────────────────────────────────────
+
+// (parse-int s) — convert string to integer; returns nil on failure (not an error)
+pub fun builtin_parse_int(args: list<LVal>) : LVal =>
+  match args {
+    [LStr(s)] =>
+      match parse_int(s) {
+        Some(n) => LNum(n),
+        None    => LNil
+      },
+    _ => LError("parse-int expects a string")
+  }
+
+// ── IO ────────────────────────────────────────────────────────────────────────
+
+// (read-file path) — read file contents as a string; returns LError on failure
+pub fun builtin_read_file(args: list<LVal>, env: Env) : (LVal, Env) =>
+  match args {
+    [LStr(path)] =>
+      match read_file(path) {
+        Ok(content) => (LStr(content), env),
+        Err(msg)    => (LError(msg), env)
+      },
+    _ => (LError("read-file expects a path string"), env)
+  }
+
+// (input) or (input "prompt") — read a line from stdin; prompt is printed first.
+// hica's input() now emits hica-readline-prompt() which flushes stdout and
+// returns empty string on EOF instead of throwing an exception.
+pub fun builtin_input(args: list<LVal>, env: Env) : (LVal, Env) =>
+  match args {
+    []        => (LStr(input("")), env),
+    [LStr(p)] => (LStr(input(p)), env),
+    _ => (LError("input expects 0 or 1 string arg"), env)
+  }
+
+// (random lo hi) — random integer in [lo, hi] inclusive; no annotation so Koka
+// infers the ndet effect
+pub fun builtin_random(args: list<LVal>) =>
+  match args {
+    [LNum(lo), LNum(hi)] => LNum(random(lo, hi)),
+    _ => LError("random expects (lo hi)")
+  }
+
 // Dispatch — maps a builtin name to its implementation
 pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
   match name {
@@ -239,6 +367,23 @@ pub fun apply_builtin(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
     "contains"     => (builtin_contains(args), env),
     "assert"       => (builtin_assert(args), env),
     "assert-eq"    => (builtin_assert_eq(args), env),
+    // string extras
+    "str-length"  => (builtin_str_length(args), env),
+    "str-slice"   => (builtin_str_slice(args), env),
+    "str-at"      => (builtin_str_at(args), env),
+    "str-split"   => (builtin_str_split(args), env),
+    "trim"        => (builtin_trim(args), env),
+    "to-upper"    => (builtin_to_upper(args), env),
+    "to-lower"    => (builtin_to_lower(args), env),
+    "ends-with"   => (builtin_ends_with(args), env),
+    "replace"     => (builtin_replace(args), env),
+    "join"        => (builtin_join(args), env),
+    // parsing
+    "parse-int"   => (builtin_parse_int(args), env),
+    // IO
+    "read-file"   => builtin_read_file(args, env),
+    "input"       => builtin_input(args, env),
+    "random"      => (builtin_random(args), env),
     _              => (LError("unknown builtin: " + name), env)
   }
 
@@ -250,7 +395,11 @@ pub fun make_env() : Env {
                "println", "str",
                "write-file", "exec",
                "starts-with", "lines", "contains",
-               "assert", "assert-eq"]
+               "assert", "assert-eq",
+               "str-length", "str-slice", "str-at", "str-split",
+               "trim", "to-upper", "to-lower", "ends-with", "replace", "join",
+               "parse-int",
+               "read-file", "input", "random"]
   fold(names, EmptyEnv, (e, name) => env_set(e, name, LBuiltin(name)))
 }
 

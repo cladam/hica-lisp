@@ -1,12 +1,14 @@
 .koka
 .hica
 .DS_Store
+.vscode
 src/.DS_Store
 
 docs/building-lisp-in-hica.md
 
 src/*
 !src/*.hc
+!src/input_utils.kk
 
 tests/*
 !tests/*.hc

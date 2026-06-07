@@ -11,7 +11,7 @@ STDLIB=/Users/claes.adamsson/.hica/stdlib
 # 'binary <output>' — regenerate .kk via hica build then compile with koka debug mode
 if [[ "$1" == "binary" ]]; then
   out="${2:-hilisp}"
-  "$HICA" build 2>&1 | grep -v "koka failed"   # regenerate .kk files; ignore koka step failure
+  "$HICA" build --generate 2>&1 | grep -v "koka failed"   # regenerate .kk files; ignore koka step failure
   koka -isrc "-i$STDLIB" --optimize=0 src/main.kk -o "$out" && chmod +x "$out"
   exit $?
 fi
