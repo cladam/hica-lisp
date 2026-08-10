@@ -30,8 +30,10 @@ The `;` starts a comment to end of line.
 |------|----------|
 | Number (integer) | `0` `42` `-7` |
 | Boolean | `true` `false` |
-| String | `"hello"` `"world"` |
+| String | `"hello"` `"a\nb"` (supports `\n` `\t` `\r` `\\` `\"`) |
 | List | `(list 1 2 3)` |
+| Hash map | `{"tabsize" 4 "theme" "gruvbox"}` — string-keyed, `hash-*` ops |
+| Symbol | `'save` — a name value, distinct from string |
 | Nil | `nil` — the empty / absent value |
 | Function | result of `fn` or `defn` |
 
@@ -206,6 +208,39 @@ Prefix with `'`:
 'hello         ; the symbol hello, not a variable lookup
 ```
 
+Quoted names are **symbols** — a first-class value type, not strings. This
+matters when a host program (like a config file loader) wants to dispatch on
+the name rather than a stringly-typed comparison:
+
+```lisp
+(symbol? 'save)          ; true
+(symbol? "save")         ; false
+(symbol-name 'save)      ; "save"
+(= 'save 'save)          ; true  (name-based)
+(= 'save "save")         ; false (distinct types)
+```
+
+## Hash maps
+
+For key→value data with string keys, use a hash map. Two equivalent
+constructors — the `{…}` reader literal is just sugar for `(hash-map …)`:
+
+```lisp
+(def cfg {"tabsize" 4 "theme" "gruvbox"})
+(hash-get cfg "theme")          ; "gruvbox"
+(hash-get cfg "missing" 99)     ; 99  — default value
+(hash-set cfg "theme" "nord")   ; new map, cfg unchanged
+(hash-keys cfg)                 ; ("tabsize" "theme")
+```
+
+Maps nest, and equality is order-independent:
+
+```lisp
+(def deep {"editor" {"tabsize" 4} "ui" {"theme" "gruvbox"}})
+(hash-get (hash-get deep "editor") "tabsize")   ; 4
+(= {"a" 1 "b" 2} {"b" 2 "a" 1})                 ; true
+```
+
 ## Closures
 
 Functions capture the environment where they were created:
@@ -241,9 +276,26 @@ This lets you create specialised functions from general ones, a core Lisp patter
       (recur (+ i 1)))))
 ```
 
+## When things go wrong
+
+HiLisp reports runtime errors with a Rust-style caret snippet pointing at
+the offending form:
+
+```
+error[type/wrong-type]: hash-get expects (hash key) or (hash key default)
+  --> myscript.hl:3:2
+   |
+ 3 | (hash-get)
+   |  ^
+```
+
+The line/column comes from the source form itself, so wrong arity or wrong
+type errors from a built-in call always tell you exactly which call to fix.
+
 ## Next steps
 
 - Browse the `examples/` directory, each file is a self-contained HiLisp program
+  (see especially `hashmap.hl` and `symbols.hl`)
 - Read [hilisp-hica-guide.md](hilisp-hica-guide.md) for the full prelude
   function reference
 - Open the REPL (`./hilisp`) and experiment interactively
