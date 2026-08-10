@@ -189,6 +189,16 @@
 (check "hash equality reorder"     true    (= {"a" 1 "b" 2} {"b" 2 "a" 1}))
 (check "hash inequality"           false   (= {"a" 1} {"a" 2}))
 
+; ── symbols (v0.8) ───────────────────────────────────────────────────────
+
+(check "symbol? quoted"      true    (symbol? 'save))
+(check "symbol? string"      false   (symbol? "save"))
+(check "symbol? number"      false   (symbol? 42))
+(check "symbol-name basic"   "save"  (symbol-name 'save))
+(check "symbol = symbol"     true    (= 'save 'save))
+(check "symbol != symbol"    false   (= 'save 'quit))
+(check "symbol != string"    false   (= 'save "save"))
+
 )) ; end results
 
 ; ── summary ──────────────────────────────────────────────────────────────

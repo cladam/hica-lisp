@@ -128,6 +128,41 @@ Maps nest — useful for grouped config sections:
 (hash-get (hash-get config "editor") "tabsize")   ; → 4
 ```
 
+### Symbols
+
+`'name` produces a symbol — distinct type from string, so hosts can dispatch on
+`'save` without confusion with `"save"`.
+
+```lisp
+(symbol? 'save)          ; → true
+(symbol-name 'save)      ; → "save"
+(= 'save 'save)          ; → true   (name-based, ignores source span)
+(= 'save "save")         ; → false
+```
+
+Useful pattern for command tables:
+
+```lisp
+(defn dispatch (action)
+  (cond
+    (= action 'save) (println "saving…")
+    (= action 'quit) (println "goodbye")
+    true             (println "unknown action")))
+```
+
+### Source-located runtime errors
+
+Any error from a built-in call is annotated with the calling form's line and
+column, so `init.hl` typos surface with a Rust-style caret snippet:
+
+```
+error[type/wrong-type]: hash-get expects (hash key) or (hash key default)
+  --> init.hl:3:2
+   |
+ 3 | (hash-get)
+   |  ^
+```
+
 ## Built-in functions
 
 | Function | Description |
@@ -138,6 +173,7 @@ Maps nest — useful for grouped config sections:
 | `car` `cdr` `cons` `list` `length` | List primitives |
 | `hash-map` `hash-get` `hash-set` `hash-del` | Hash-map ops (string keys) |
 | `hash-has?` `hash-keys` `hash-vals` `hash?` | Hash-map inspection |
+| `symbol?` `symbol-name` | Symbol test / name extraction |
 | `str arg…` | Concatenate any values into a string |
 | `println arg…` | Print without quotes, newline at end |
 | `write-file path content` | Write string to file; returns `nil` or `error: …` |

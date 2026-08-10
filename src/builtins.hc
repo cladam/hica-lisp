@@ -63,17 +63,19 @@ pub fun hash_all_match(a: list<(string, LVal)>, b: list<(string, LVal)>) : bool 
 pub fun hash_eq(a: list<(string, LVal)>, b: list<(string, LVal)>) : bool =>
   length(a) == length(b) && hash_all_match(a, b)
 
-// Equality — structural, works across types
+// Equality — structural, works across types. Symbol equality is name-based
+// and ignores source spans, so `'save` from two files still compares equal.
 pub fun builtin_eq(args: list<LVal>) : LVal =>
   match args {
-    [LNum(a),  LNum(b)]  => LBool(a == b),
-    [LBool(a), LBool(b)] => LBool(a == b),
-    [LStr(a),  LStr(b)]  => LBool(a == b),
-    [LNil,     LNil]     => LBool(true),
-    [LList(a), LList(b)] => LBool(list_eq(a, b)),
-    [LHash(a), LHash(b)] => LBool(hash_eq(a, b)),
-    [_, _]               => LBool(false),
-    _                    => lerror("type/arity", "= expects 2 args")
+    [LNum(a),  LNum(b)]     => LBool(a == b),
+    [LBool(a), LBool(b)]    => LBool(a == b),
+    [LStr(a),  LStr(b)]     => LBool(a == b),
+    [LSym(a, _), LSym(b, _)] => LBool(a == b),
+    [LNil,     LNil]        => LBool(true),
+    [LList(a), LList(b)]    => LBool(list_eq(a, b)),
+    [LHash(a), LHash(b)]    => LBool(hash_eq(a, b)),
+    [_, _]                  => LBool(false),
+    _                       => lerror("type/arity", "= expects 2 args")
   }
 
 // Logic
@@ -325,6 +327,23 @@ pub fun builtin_join(args: list<LVal>) : LVal =>
     _ => lerror("type/wrong-type", "join expects (sep list)")
   }
 
+// ── Symbols ──────────────────────────────────────────────────────────────────
+
+// (symbol? v) — true iff v is a quoted/name symbol (LSym), not a string
+pub fun builtin_symbol_pred(args: list<LVal>) : LVal =>
+  match args {
+    [LSym(_, _)] => LBool(true),
+    [_]          => LBool(false),
+    _            => lerror("type/arity", "symbol? expects 1 arg")
+  }
+
+// (symbol-name sym) — extract the name of a symbol as a plain string
+pub fun builtin_symbol_name(args: list<LVal>) : LVal =>
+  match args {
+    [LSym(name, _)] => LStr(name),
+    _               => lerror("type/wrong-type", "symbol-name expects a symbol")
+  }
+
 // ── Hash-maps ────────────────────────────────────────────────────────────────
 
 // Fold args into an alist of (string, LVal); non-string keys or odd arity
@@ -497,6 +516,9 @@ pub fun apply_builtin(name: string, args: list<LVal>, env: Env) =>
     "ends-with"   => (builtin_ends_with(args), env),
     "replace"     => (builtin_replace(args), env),
     "join"        => (builtin_join(args), env),
+    // symbols
+    "symbol?"     => (builtin_symbol_pred(args), env),
+    "symbol-name" => (builtin_symbol_name(args), env),
     // hash-maps
     "hash-map"    => (builtin_hash_map(args), env),
     "hash-get"    => (builtin_hash_get(args), env),
@@ -526,6 +548,7 @@ pub fun make_env() : Env {
                "assert", "assert-eq",
                "str-length", "str-slice", "str-at", "str-split",
                "trim", "to-upper", "to-lower", "ends-with", "replace", "join",
+               "symbol?", "symbol-name",
                "hash-map", "hash-get", "hash-set", "hash-del",
                "hash-has?", "hash-keys", "hash-vals", "hash?",
                "parse-int",
@@ -638,4 +661,27 @@ test "list equality is structural" {
   let c = LList([LNum(1), LNum(2)])
   assert_eq(lval_show(builtin_eq([a, b])), "true")
   assert_eq(lval_show(builtin_eq([a, c])), "false")
+}
+
+test "symbol equality ignores span" {
+  let s1 = LSym("save", Span(1, 1))
+  let s2 = LSym("save", Span(9, 3))
+  let s3 = LSym("quit", NoSpan)
+  assert_eq(lval_show(builtin_eq([s1, s2])), "true")
+  assert_eq(lval_show(builtin_eq([s1, s3])), "false")
+  // symbol vs same-named string is NOT equal
+  assert_eq(lval_show(builtin_eq([s1, LStr("save")])), "false")
+}
+
+test "symbol? predicate" {
+  assert_eq(lval_show(builtin_symbol_pred([lsym("save")])),   "true")
+  assert_eq(lval_show(builtin_symbol_pred([LStr("save")])),   "false")
+  assert_eq(lval_show(builtin_symbol_pred([LNum(1)])),        "false")
+}
+
+test "symbol-name extracts the name" {
+  assert_eq(lval_show(builtin_symbol_name([lsym("save")])), "\"save\"")
+  let err = builtin_symbol_name([LStr("save")])
+  let is_err = match err { LError(_, _, _, _) => true, _ => false }
+  assert(is_err)
 }

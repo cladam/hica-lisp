@@ -1,0 +1,37 @@
+; symbols.hl — HiLisp symbol demo
+; Run:  ./hilisp examples/symbols.hl
+;
+; Shows that quoted names are first-class symbol values distinct from strings,
+; and how to test/extract them from builtins (the hedit config `(bind …)`
+; pattern).
+
+; ── quote produces a symbol, not a string ──────────────────────────────
+(println (str "'save is       : " 'save))          ; save
+(println (str "\"save\" is     : " "save"))        ; "save"
+(println (str "symbol? 'save  : " (symbol? 'save)))  ; true
+(println (str "symbol? \"s\"    : " (symbol? "save"))) ; false
+(println (str "= symbol str   : " (= 'save "save"))) ; false — distinct types
+
+; ── extract a symbol's name for dispatch ───────────────────────────────
+(println (str "symbol-name    : " (symbol-name 'save)))   ; "save"
+
+; ── equality is by name, not by source location ────────────────────────
+(println (str "'save = 'save  : " (= 'save 'save)))  ; true
+(println (str "'save = 'quit  : " (= 'save 'quit)))  ; false
+
+; ── example: a hedit-style dispatch table using symbol keys via names ──
+(defn action-name (sym)
+  (cond
+    (= sym 'save)         "save file"
+    (= sym 'quit)         "exit editor"
+    (= sym 'close-buffer) "close current buffer"
+    true                  "unknown action"))
+
+(println (action-name 'save))          ; save file
+(println (action-name 'quit))          ; exit editor
+(println (action-name 'close-buffer))  ; close current buffer
+(println (action-name 'wibble))        ; unknown action
+
+; ── error location: (bad-call) points at the source form ───────────────
+; Uncomment to see the caret snippet:
+; (hash-get)

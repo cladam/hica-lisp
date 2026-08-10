@@ -48,7 +48,8 @@ or nil. All code is an s-expression.
 `+` `-` `*` `/` `=` `<` `>` `<=` `>=` `not` `and` `or` `null?` `empty?`  
 `car` `cdr` `cons` `list` `length`  
 `println` `str`  
-`hash-map` `hash-get` `hash-set` `hash-del` `hash-has?` `hash-keys` `hash-vals` `hash?`
+`hash-map` `hash-get` `hash-set` `hash-del` `hash-has?` `hash-keys` `hash-vals` `hash?`  
+`symbol?` `symbol-name`
 
 ### Hash maps
 
@@ -79,6 +80,35 @@ See `examples/hashmap.hl` for the full API.
 String literals support the usual escapes: `\n`, `\t`, `\r`, `\\`, `\"`.
 Values round-trip through `lval_show`, so `(str …)` and `(println (str …))`
 produce readable output regardless of embedded newlines or quotes.
+
+### Symbols
+
+`'name` evaluates to a **symbol** value — a distinct type from string. Use
+`symbol?` to test and `symbol-name` to extract the name; equality is
+structural on the name.
+
+```lisp
+(symbol? 'save)          ; → true
+(symbol? "save")         ; → false
+(symbol-name 'save)      ; → "save"
+(= 'save 'save)          ; → true
+(= 'save "save")         ; → false
+```
+
+This makes command-dispatch tables idiomatic — a config file writes
+`(bind "Ctrl-s" 'save)` and the host builtin can pattern-match on the symbol.
+
+### Source-located errors
+
+Runtime errors from builtins carry the source span of the calling form:
+
+```
+error[type/wrong-type]: hash-get expects (hash key) or (hash key default)
+  --> init.hl:3:2
+   |
+ 3 | (hash-get)
+   |  ^
+```
 
 
 ### Example — recursion
@@ -146,6 +176,7 @@ The `examples/` directory contains runnable `.hl` files:
 | `higher_order.hl` | `scan`, `windows`, `flat_map`, `partition`, `enumerate` |
 | `loop.hl` | `loop`/`recur` — countdown, accumulator sum, O(n) Fibonacci |
 | `hashmap.hl` | Hash-map constructor, `{k v …}` reader literal, nested maps |
+| `symbols.hl` | Quoted symbols vs strings, `symbol?`, `symbol-name`, dispatch tables |
 
 ## Source layout
 

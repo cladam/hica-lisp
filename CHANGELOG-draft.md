@@ -1,9 +1,8 @@
-# Unreleased — v0.7.0
+# Unreleased — v0.8.0
 
-Config-oriented additions driven by the hedit design's HiLisp gap analysis
-(§8). Two of the three gaps listed there were already resolved in main; this
-release closes the remaining one (hash-maps) and polishes the string display
-path so scripting output round-trips cleanly.
+Config-oriented release driven by the hedit design's HiLisp gap analysis (§8).
+Closes all four items and polishes the runtime error path so `init.hl` typos
+surface at the offending source form.
 
 ### ✨ Features
 
@@ -14,20 +13,30 @@ path so scripting output round-trips cleanly.
   independent) equality.
 - **`{k v k v …}` reader literal** — parser desugars braces into
   `(hash-map …)` so nested config maps read naturally.
+- **Symbol API for hosts.** New builtins `(symbol? v)` and `(symbol-name sym)`
+  so host programs (e.g. hedit's `(bind …)`) can test/extract symbols without
+  matching on the raw `LVal` ADT.
+- **Symbol equality.** `=` now compares two `LSym` values by name (span-
+  independent). Symbols and strings of the same text compare unequal.
 - **String escapes round-trip through `lval_show`.** Real newlines, tabs,
   quotes and backslashes are re-escaped on display so `(println (str …))`
   produces readable output regardless of what's inside a string.
 - **Structural equality for lists and hash-maps** — `=` now compares
   `LList`/`LList` and `LHash`/`LHash` structurally in addition to primitives.
+- **Source-located runtime errors.** `eval_call` now captures the head-symbol
+  span of every call form and stamps it onto any span-less `LError` returned
+  by the builtin, so `(hash-get)` (wrong arity) prints a caret snippet
+  pointing at that exact form. Deeper spans (e.g. `undefined-symbol`) are
+  preserved.
 
 ### 📚 Docs
 
-- README: new "Hash maps" and "String escapes" sections; `examples/hashmap.hl`
-  listed in the examples table.
-- `docs/hilisp-hica-guide.md`: hash-map subsection, escape-sequence limitation
-  removed, built-in table extended.
-- `examples/hashmap.hl`: runnable demo of the hash-map API.
-- `lib/test-prelude.hl`: 15 new hash-map regression tests (116 total).
+- README: new "Hash maps", "String escapes", "Symbols" and "Source-located
+  errors" sections; `examples/hashmap.hl` and `examples/symbols.hl` listed.
+- `docs/hilisp-hica-guide.md`: hash-map + symbols subsections, escape-sequence
+  limitation removed, built-in table extended.
+- `examples/hashmap.hl`, `examples/symbols.hl`: runnable demos.
+- `lib/test-prelude.hl`: +22 regression tests (123 total).
 
 ### 🔨 Compatibility
 

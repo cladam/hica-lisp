@@ -62,7 +62,11 @@ pub fun eval_list(items: list<LVal>, env: Env) : (LVal, Env) =>
     // otherwise (e.g. fizzbuzz defines its own loop), defer to the function call path.
     [LSym("loop", _), LList(bindings), body] => eval_loop_or_call(bindings, body, env),
 
-    // function call
+    // function call — when the head is a symbol, capture its source span so any
+    // runtime error (arity/type/etc) surfaces with the calling form's location
+    // rather than pointing at nothing.
+    [LSym(name, span), ..args] =>
+      eval_call_with_span(LSym(name, span), args, span, env),
     [func, ..args] => eval_call(func, args, env),
     _ => (LNil, env)
   }
@@ -204,6 +208,13 @@ pub fun eval_call(func: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
     let (arg_vals, env3) = eval_args(args, env2)
     apply(f, arg_vals, env3)
   }
+}
+
+// Same as eval_call, but attaches `span` to any span-less LError coming out of
+// the callee — so `(hash-get)` with wrong arity points at the source `(hash-get …)`.
+pub fun eval_call_with_span(func: LVal, args: list<LVal>, span: Span, env: Env) : (LVal, Env) {
+  let (result, env2) = eval_call(func, args, env)
+  (with_span(result, span), env2)
 }
 
 // use is stubbed until we have a module registry

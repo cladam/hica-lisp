@@ -41,6 +41,14 @@ pub fun lerror_full(id: string, msg: string, note: string, span: Span) : LVal =>
 pub fun lerror_at(id: string, msg: string, span: Span) : LVal => LError(id, msg, "", span)
 pub fun lerror(id: string, msg: string) : LVal => LError(id, msg, "", NoSpan)
 
+// If an LError has no span, attach one; existing spans are preserved so
+// deeper diagnostics (e.g. undefined-symbol) keep their more specific location.
+pub fun with_span(v: LVal, span: Span) : LVal =>
+  match v {
+    LError(id, msg, note, NoSpan) => LError(id, msg, note, span),
+    _ => v
+  }
+
 // Env and LVal are mutually recursive — LFun captures an Env, Env holds LVals
 // Bindings are a Hica map (list<(string, LVal)>); parent chains implement lexical scope
 pub type Env {
