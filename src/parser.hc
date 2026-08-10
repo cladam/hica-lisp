@@ -13,6 +13,8 @@ pub fun parse_tokens(tokens: list<Token>) : (LVal, list<Token>) =>
       if tok_text(t) == "'" { parse_quote(rest) }
       else if tok_text(t) == "(" { parse_list(rest, []) }
       else if tok_text(t) == ")" { (LNil, rest) }
+      else if tok_text(t) == "\{" { parse_hash(rest, [lsym("hash-map")]) }
+      else if tok_text(t) == "}" { (LNil, rest) }
       else { (parse_atom(t), rest) }
   }
 
@@ -31,6 +33,19 @@ pub fun parse_list(tokens: list<Token>, acc: list<LVal>) : (LVal, list<Token>) =
       else {
         let (item, rest2) = parse_tokens(tokens)
         parse_list(rest2, acc + [item])
+      }
+  }
+
+// parse_hash — desugar `{k v k v …}` into `(hash-map k v k v …)` so eval goes
+// through the normal builtin dispatch. Odd arity is caught by the builtin.
+pub fun parse_hash(tokens: list<Token>, acc: list<LVal>) : (LVal, list<Token>) =>
+  match tokens {
+    []           => (LList(acc), []),
+    [t, ..rest]  =>
+      if tok_text(t) == "}" { (LList(acc), rest) }
+      else {
+        let (item, rest2) = parse_tokens(tokens)
+        parse_hash(rest2, acc + [item])
       }
   }
 
@@ -73,4 +88,23 @@ test "parse_tokens: quote shorthand expands to (quote x)" {
   let rest_empty = match rest { [] => true, _ => false }
   assert(rest_empty)
   assert(is_quote)
+}
+
+test "parse_tokens: empty hash literal desugars to (hash-map)" {
+  let (v, rest) = parse_tokens([mk_tok("\{"), mk_tok("}")])
+  let ok = match v { LList([LSym(n, _)]) => n == "hash-map", _ => false }
+  let rest_empty = match rest { [] => true, _ => false }
+  assert(rest_empty)
+  assert(ok)
+}
+
+test "parse_tokens: hash literal desugars to (hash-map k v ...)" {
+  let (v, rest) = parse_tokens([mk_tok("\{"), mk_tok("\"k\""), mk_tok("1"), mk_tok("}")])
+  let ok = match v {
+    LList([LSym(n, _), LStr(k), LNum(x)]) => n == "hash-map" && k == "k" && x == 1,
+    _ => false
+  }
+  let rest_empty = match rest { [] => true, _ => false }
+  assert(rest_empty)
+  assert(ok)
 }

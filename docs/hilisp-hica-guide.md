@@ -100,16 +100,44 @@ Use `str` to concatenate any number of values into a string:
 (println (str "hello" " " "world"))   ; → hello world
 ```
 
-String literals **can** contain spaces - the tokenizer handles them correctly.
+String literals **can** contain spaces — the tokenizer handles them correctly.
+The usual escape sequences work too: `\n`, `\t`, `\r`, `\\`, `\"`.
+
+### Hash maps
+
+Key→value maps with string keys — the natural shape for config. There's a
+constructor and a `{…}` reader literal that desugars to it:
+
+```lisp
+(def cfg (hash-map "tabsize" 4 "theme" "gruvbox"))
+(def cfg2 {"tabsize" 4 "theme" "gruvbox"})   ; same thing
+
+(hash-get cfg "theme")           ; → "gruvbox"
+(hash-get cfg "missing" 99)      ; → 99  (default when absent)
+(hash-set cfg "theme" "nord")    ; → new map, original untouched
+(hash-keys cfg)                  ; → ("tabsize" "theme")
+(hash-has? cfg "theme")          ; → true
+(hash? cfg)                      ; → true
+(= cfg cfg2)                     ; → true (order-independent)
+```
+
+Maps nest — useful for grouped config sections:
+
+```lisp
+(def config {"editor" {"tabsize" 4} "ui" {"theme" "gruvbox"}})
+(hash-get (hash-get config "editor") "tabsize")   ; → 4
+```
 
 ## Built-in functions
 
 | Function | Description |
 |---|---|
 | `+` `-` `*` `/` | Arithmetic |
-| `=` `<` `>` `<=` `>=` | Comparison |
+| `=` `<` `>` `<=` `>=` | Comparison (structural equality for lists and hashes) |
 | `not` `and` `or` | Logic |
 | `car` `cdr` `cons` `list` `length` | List primitives |
+| `hash-map` `hash-get` `hash-set` `hash-del` | Hash-map ops (string keys) |
+| `hash-has?` `hash-keys` `hash-vals` `hash?` | Hash-map inspection |
 | `str arg…` | Concatenate any values into a string |
 | `println arg…` | Print without quotes, newline at end |
 | `write-file path content` | Write string to file; returns `nil` or `error: …` |
@@ -198,9 +226,8 @@ This is also run in CI after building the interpreter.
 (println "written")
 ```
 
-> **Note:** `\n` inside string literals is literal backslash-n — HiLisp does not
-> process escape sequences. Build multi-line content by concatenating with actual
-> newlines using `exec "printf '...'"` or by writing a generating function.
+`\n` becomes a real newline in the written file, as expected. `\t`, `\r`, `\\`,
+and `\"` are supported likewise.
 
 ### Iterate a list and run a command per item
 
@@ -229,10 +256,10 @@ Anything defined in an earlier file is visible to all later files.
 
 | Limitation | Workaround |
 |---|---|
-| No escape sequences in strings (`\n`, `\t`) | Use `exec "printf '...'"` to produce controlled output |
 | `exec` command string can't contain spaces in parts | Build the command string with `str` |
-| No tail-call optimisation | Keep recursion depth small; use `fold` for iteration |
+| No tail-call optimisation for `defn` | Use `loop`/`recur` for iteration |
 | No file-system listing | Use `exec "ls ..."` and parse the output |
+| Hash-map keys are strings only | Coerce with `(str …)` on the way in |
 
 ## Workflow: scripting a hica build step
 

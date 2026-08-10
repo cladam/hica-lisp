@@ -44,15 +44,30 @@ pub fun render_snippet(source: string, path: string, id: string, note: string, s
     }
   }
 
+// Escape a raw string for round-trippable display — inverse of the tokeniser's
+// escape decoding. Backslash first so we don't double-escape our own output.
+pub fun escape_string(s: string) : string {
+  let s1 = replace(s,  "\\", "\\\\")
+  let s2 = replace(s1, "\"", "\\\"")
+  let s3 = replace(s2, "\n", "\\n")
+  let s4 = replace(s3, "\t", "\\t")
+  replace(s4, "\r", "\\r")
+}
+
+// Render a single hash-map entry as `"key" value` (key always quoted+escaped)
+pub fun show_entry(pair: (string, LVal)) : string =>
+  match pair { (k, v) => "\"" + escape_string(k) + "\" " + lval_show(v) }
+
 // Convert any LVal to its printed representation (strings get quotes — Haskell-style show)
 pub fun lval_show(v: LVal) : string =>
   match v {
     LNum(n)            => show(n),
     LSym(name, _)      => name,
-    LStr(s)            => "\"" + s + "\"",
+    LStr(s)            => "\"" + escape_string(s) + "\"",
     LBool(b)           => if b { "true" } else { "false" },
     LNil               => "nil",
     LList(items)       => "(" + join(map(items, lval_show), " ") + ")",
+    LHash(entries)     => "{" + join(map(entries, show_entry), " ") + "}",
     LBuiltin(name)     => "#<builtin:" + name + ">",
     LFun(fname, params, _, _) => if fname == "" { "#<fn(" + join(params, " ") + ")>" } else { "#<fn:" + fname + "(" + join(params, " ") + ")>" },
     LRecur(_)          => "#<recur>",
@@ -75,6 +90,20 @@ test "show primitives" {
 
 test "show string includes quotes" {
   assert_eq(lval_show(LStr("hello")), "\"hello\"")
+}
+
+test "show string escapes special characters" {
+  // Real newline round-trips to \n; tab to \t; embedded quote to \" ; backslash to \\
+  assert_eq(lval_show(LStr("a\nb")), "\"a\\nb\"")
+  assert_eq(lval_show(LStr("a\tb")), "\"a\\tb\"")
+  assert_eq(lval_show(LStr("a\"b")), "\"a\\\"b\"")
+  assert_eq(lval_show(LStr("a\\b")), "\"a\\\\b\"")
+}
+
+test "show hash-map" {
+  assert_eq(lval_show(LHash([])), "\{}")
+  assert_eq(lval_show(LHash([("k", LNum(1))])), "\{\"k\" 1}")
+  assert_eq(lval_show(LHash([("a", LNum(1)), ("b", LStr("x"))])), "\{\"a\" 1 \"b\" \"x\"}")
 }
 
 test "show list" {

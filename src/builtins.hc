@@ -32,6 +32,37 @@ pub fun builtin_cmp(args: list<LVal>, op: (int, int) -> bool) : LVal =>
     _                  => lerror("type/not-a-number", "comparison expects 2 numbers")
   }
 
+// Structural list equality — assumes both sides are LList items
+pub fun list_eq(xs: list<LVal>, ys: list<LVal>) : bool =>
+  match (xs, ys) {
+    ([], []) => true,
+    ([x, ..xr], [y, ..yr]) =>
+      match builtin_eq([x, y]) {
+        LBool(true) => list_eq(xr, yr),
+        _           => false
+      },
+    _ => false
+  }
+
+// Structural hash equality — order-independent, so we look each key from a in b
+// and require the same length. Missing keys or value mismatch → false.
+pub fun hash_all_match(a: list<(string, LVal)>, b: list<(string, LVal)>) : bool =>
+  match a {
+    [] => true,
+    [(k, v), ..rest] =>
+      match map_get(b, k) {
+        Some(v2) =>
+          match builtin_eq([v, v2]) {
+            LBool(true) => hash_all_match(rest, b),
+            _           => false
+          },
+        None => false
+      }
+  }
+
+pub fun hash_eq(a: list<(string, LVal)>, b: list<(string, LVal)>) : bool =>
+  length(a) == length(b) && hash_all_match(a, b)
+
 // Equality — structural, works across types
 pub fun builtin_eq(args: list<LVal>) : LVal =>
   match args {
@@ -39,6 +70,8 @@ pub fun builtin_eq(args: list<LVal>) : LVal =>
     [LBool(a), LBool(b)] => LBool(a == b),
     [LStr(a),  LStr(b)]  => LBool(a == b),
     [LNil,     LNil]     => LBool(true),
+    [LList(a), LList(b)] => LBool(list_eq(a, b)),
+    [LHash(a), LHash(b)] => LBool(hash_eq(a, b)),
     [_, _]               => LBool(false),
     _                    => lerror("type/arity", "= expects 2 args")
   }
@@ -292,6 +325,92 @@ pub fun builtin_join(args: list<LVal>) : LVal =>
     _ => lerror("type/wrong-type", "join expects (sep list)")
   }
 
+// ── Hash-maps ────────────────────────────────────────────────────────────────
+
+// Fold args into an alist of (string, LVal); non-string keys or odd arity
+// produce an LError which the outer builtin returns as-is.
+pub fun collect_hash_pairs(args: list<LVal>, acc: list<(string, LVal)>) : LVal =>
+  match args {
+    []                    => LHash(acc),
+    [LStr(k), v, ..rest]  => collect_hash_pairs(rest, map_set(acc, k, v)),
+    [_, _, ..]            => lerror("type/wrong-type", "hash-map keys must be strings"),
+    [_]                   => lerror("type/arity", "hash-map expects an even number of args")
+  }
+
+// (hash-map k1 v1 k2 v2 …) — build a hash-map; keys must be strings.
+// Later keys shadow earlier ones (last-write-wins).
+pub fun builtin_hash_map(args: list<LVal>) : LVal => collect_hash_pairs(args, [])
+
+// (hash-get m k)         — value or nil
+// (hash-get m k default) — value or default
+pub fun builtin_hash_get(args: list<LVal>) : LVal =>
+  match args {
+    [LHash(entries), LStr(k)] =>
+      match map_get(entries, k) { Some(v) => v, None => LNil },
+    [LHash(entries), LStr(k), default] =>
+      match map_get(entries, k) { Some(v) => v, None => default },
+    _ => lerror("type/wrong-type", "hash-get expects (hash key) or (hash key default)")
+  }
+
+// (hash-set m k v) — return a new hash with k bound to v
+pub fun builtin_hash_set(args: list<LVal>) : LVal =>
+  match args {
+    [LHash(entries), LStr(k), v] => LHash(map_set(entries, k, v)),
+    _ => lerror("type/wrong-type", "hash-set expects (hash key value)")
+  }
+
+// Remove key k from an alist, preserving insertion order for the rest
+pub fun alist_del(entries: list<(string, LVal)>, k: string) : list<(string, LVal)> =>
+  match entries {
+    []               => [],
+    [(kk, v), ..rest] =>
+      if kk == k { alist_del(rest, k) }
+      else       { [(kk, v)] + alist_del(rest, k) }
+  }
+
+// (hash-del m k) — return a new hash without k (no-op if k is absent)
+pub fun builtin_hash_del(args: list<LVal>) : LVal =>
+  match args {
+    [LHash(entries), LStr(k)] => LHash(alist_del(entries, k)),
+    _ => lerror("type/wrong-type", "hash-del expects (hash key)")
+  }
+
+// (hash-has? m k) — boolean
+pub fun builtin_hash_has(args: list<LVal>) : LVal =>
+  match args {
+    [LHash(entries), LStr(k)] =>
+      match map_get(entries, k) { Some(_) => LBool(true), None => LBool(false) },
+    _ => lerror("type/wrong-type", "hash-has? expects (hash key)")
+  }
+
+// Extract the key or value from a hash entry. Kept as top-level functions so
+// Koka codegen doesn't end up with a nested match inside a lambda literal,
+// which produced an indentation-sensitive parse error in the emitted .kk.
+pub fun hash_key_of(kv: (string, LVal)) : LVal => match kv { (k, _) => LStr(k) }
+pub fun hash_val_of(kv: (string, LVal)) : LVal => match kv { (_, v) => v }
+
+// (hash-keys m) — list of string keys in insertion order
+pub fun builtin_hash_keys(args: list<LVal>) : LVal =>
+  match args {
+    [LHash(entries)] => LList(map(entries, hash_key_of)),
+    _ => lerror("type/wrong-type", "hash-keys expects a hash")
+  }
+
+// (hash-vals m) — list of values in insertion order
+pub fun builtin_hash_vals(args: list<LVal>) : LVal =>
+  match args {
+    [LHash(entries)] => LList(map(entries, hash_val_of)),
+    _ => lerror("type/wrong-type", "hash-vals expects a hash")
+  }
+
+// (hash? v) — type predicate
+pub fun builtin_hash_pred(args: list<LVal>) : LVal =>
+  match args {
+    [LHash(_)] => LBool(true),
+    [_]        => LBool(false),
+    _          => lerror("type/arity", "hash? expects 1 arg")
+  }
+
 // ── Parsing ───────────────────────────────────────────────────────────────────
 
 // (parse-int s) — convert string to integer; returns nil on failure (not an error)
@@ -378,6 +497,15 @@ pub fun apply_builtin(name: string, args: list<LVal>, env: Env) =>
     "ends-with"   => (builtin_ends_with(args), env),
     "replace"     => (builtin_replace(args), env),
     "join"        => (builtin_join(args), env),
+    // hash-maps
+    "hash-map"    => (builtin_hash_map(args), env),
+    "hash-get"    => (builtin_hash_get(args), env),
+    "hash-set"    => (builtin_hash_set(args), env),
+    "hash-del"    => (builtin_hash_del(args), env),
+    "hash-has?"   => (builtin_hash_has(args), env),
+    "hash-keys"   => (builtin_hash_keys(args), env),
+    "hash-vals"   => (builtin_hash_vals(args), env),
+    "hash?"       => (builtin_hash_pred(args), env),
     // parsing
     "parse-int"   => (builtin_parse_int(args), env),
     // IO
@@ -398,6 +526,8 @@ pub fun make_env() : Env {
                "assert", "assert-eq",
                "str-length", "str-slice", "str-at", "str-split",
                "trim", "to-upper", "to-lower", "ends-with", "replace", "join",
+               "hash-map", "hash-get", "hash-set", "hash-del",
+               "hash-has?", "hash-keys", "hash-vals", "hash?",
                "parse-int",
                "read-file", "input", "random"]
   let base = fold(names, EmptyEnv, (e, name) => env_set(e, name, LBuiltin(name)))
@@ -441,8 +571,71 @@ test "make_env registers builtins" {
   let has_car  = match env_get(e, "car") { LBuiltin(_) => true, _ => false }
   let has_null = match env_get(e, "null?") { LBuiltin(_) => true, _ => false }
   let has_empty = match env_get(e, "empty?") { LBuiltin(_) => true, _ => false }
+  let has_hash = match env_get(e, "hash-map") { LBuiltin(_) => true, _ => false }
   assert(has_plus)
   assert(has_car)
   assert(has_null)
   assert(has_empty)
+  assert(has_hash)
+}
+
+test "hash-map build and get" {
+  let m = builtin_hash_map([LStr("k"), LNum(1), LStr("j"), LStr("v")])
+  assert_eq(lval_show(builtin_hash_get([m, LStr("k")])), "1")
+  assert_eq(lval_show(builtin_hash_get([m, LStr("j")])), "\"v\"")
+  assert_eq(lval_show(builtin_hash_get([m, LStr("missing")])), "nil")
+  assert_eq(lval_show(builtin_hash_get([m, LStr("missing"), LNum(99)])), "99")
+}
+
+test "hash-map odd arity errors" {
+  let r = builtin_hash_map([LStr("k")])
+  let is_err = match r { LError(_, _, _, _) => true, _ => false }
+  assert(is_err)
+}
+
+test "hash-map non-string key errors" {
+  let r = builtin_hash_map([LNum(1), LNum(2)])
+  let is_err = match r { LError(_, _, _, _) => true, _ => false }
+  assert(is_err)
+}
+
+test "hash-map set overwrites" {
+  let m  = builtin_hash_map([LStr("k"), LNum(1)])
+  let m2 = builtin_hash_set([m, LStr("k"), LNum(9)])
+  assert_eq(lval_show(builtin_hash_get([m2, LStr("k")])), "9")
+}
+
+test "hash-map del removes key" {
+  let m  = builtin_hash_map([LStr("k"), LNum(1), LStr("j"), LNum(2)])
+  let m2 = builtin_hash_del([m, LStr("k")])
+  assert_eq(lval_show(builtin_hash_has([m2, LStr("k")])), "false")
+  assert_eq(lval_show(builtin_hash_has([m2, LStr("j")])), "true")
+}
+
+test "hash-map keys and vals preserve order" {
+  let m = builtin_hash_map([LStr("a"), LNum(1), LStr("b"), LNum(2)])
+  assert_eq(lval_show(builtin_hash_keys([m])), "(\"a\" \"b\")")
+  assert_eq(lval_show(builtin_hash_vals([m])), "(1 2)")
+}
+
+test "hash? predicate" {
+  assert_eq(lval_show(builtin_hash_pred([LHash([])])), "true")
+  assert_eq(lval_show(builtin_hash_pred([LList([])])), "false")
+  assert_eq(lval_show(builtin_hash_pred([LNum(1)])),   "false")
+}
+
+test "hash equality is order-independent" {
+  let m1 = builtin_hash_map([LStr("a"), LNum(1), LStr("b"), LNum(2)])
+  let m2 = builtin_hash_map([LStr("b"), LNum(2), LStr("a"), LNum(1)])
+  let m3 = builtin_hash_map([LStr("a"), LNum(1)])
+  assert_eq(lval_show(builtin_eq([m1, m2])), "true")
+  assert_eq(lval_show(builtin_eq([m1, m3])), "false")
+}
+
+test "list equality is structural" {
+  let a = LList([LNum(1), LNum(2), LNum(3)])
+  let b = LList([LNum(1), LNum(2), LNum(3)])
+  let c = LList([LNum(1), LNum(2)])
+  assert_eq(lval_show(builtin_eq([a, b])), "true")
+  assert_eq(lval_show(builtin_eq([a, c])), "false")
 }

@@ -74,6 +74,13 @@ pub fun char_scan(src: string, i: int, line: int, col: int, cur: string, tok_lin
       } else if c == "]" {
         let new_acc = flush_tok(cur, tok_line, tok_col, acc) + [Token(")", line, col)]
         char_scan(src, i + 1, line, col + 1, "", 0, 0, new_acc, false)
+      } else if c == "\{" {
+        // Curly braces open a hash-map literal — parser desugars to (hash-map …)
+        let new_acc = flush_tok(cur, tok_line, tok_col, acc) + [Token("\{", line, col)]
+        char_scan(src, i + 1, line, col + 1, "", 0, 0, new_acc, false)
+      } else if c == "}" {
+        let new_acc = flush_tok(cur, tok_line, tok_col, acc) + [Token("}", line, col)]
+        char_scan(src, i + 1, line, col + 1, "", 0, 0, new_acc, false)
       } else if c == "'" {
         let new_acc = flush_tok(cur, tok_line, tok_col, acc) + [Token("'", line, col)]
         char_scan(src, i + 1, line, col + 1, "", 0, 0, new_acc, false)
@@ -137,6 +144,12 @@ test "tokenise string escape sequences" {
   assert_eq(tok_texts(tokenise("\"a\\nb\"")), ["\"a\nb\""])
   assert_eq(tok_texts(tokenise("\"a\\tb\"")), ["\"a\tb\""])
   assert_eq(tok_texts(tokenise("\"a\\\\b\"")), ["\"a\\b\""])
+}
+
+test "tokenise hash-map braces" {
+  // {} become their own tokens, siblings of ( )
+  assert_eq(tok_texts(tokenise("\{}")), ["\{", "}"])
+  assert_eq(tok_texts(tokenise("\{\"k\" 1}")), ["\{", "\"k\"", "1", "}"])
 }
 
 test "tokenise tracks line and column" {

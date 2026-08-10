@@ -47,7 +47,39 @@ or nil. All code is an s-expression.
 
 `+` `-` `*` `/` `=` `<` `>` `<=` `>=` `not` `and` `or` `null?` `empty?`  
 `car` `cdr` `cons` `list` `length`  
-`println` `str`
+`println` `str`  
+`hash-map` `hash-get` `hash-set` `hash-del` `hash-has?` `hash-keys` `hash-vals` `hash?`
+
+### Hash maps
+
+Config-friendly key→value maps with string keys. Two constructors:
+
+```lisp
+(def a (hash-map "tabsize" 4 "theme" "gruvbox"))
+(def b {"tabsize" 4 "theme" "gruvbox"})   ; reader literal, desugars to (hash-map …)
+
+(hash-get a "theme")           ; → "gruvbox"
+(hash-get a "missing" 99)      ; → 99  (default when key absent)
+(hash-set a "theme" "nord")    ; → new map, original unchanged
+(hash-keys a)                  ; → ("tabsize" "theme")
+(= a b)                        ; → true (order-independent)
+```
+
+Maps nest freely:
+
+```lisp
+(def config {"editor" {"tabsize" 4} "ui" {"theme" "gruvbox"}})
+(hash-get (hash-get config "editor") "tabsize")   ; → 4
+```
+
+See `examples/hashmap.hl` for the full API.
+
+### String escapes
+
+String literals support the usual escapes: `\n`, `\t`, `\r`, `\\`, `\"`.
+Values round-trip through `lval_show`, so `(str …)` and `(println (str …))`
+produce readable output regardless of embedded newlines or quotes.
+
 
 ### Example — recursion
 
@@ -113,6 +145,7 @@ The `examples/` directory contains runnable `.hl` files:
 | `statistics.hl` | Mean, median, variance, standard deviation |
 | `higher_order.hl` | `scan`, `windows`, `flat_map`, `partition`, `enumerate` |
 | `loop.hl` | `loop`/`recur` — countdown, accumulator sum, O(n) Fibonacci |
+| `hashmap.hl` | Hash-map constructor, `{k v …}` reader literal, nested maps |
 
 ## Source layout
 

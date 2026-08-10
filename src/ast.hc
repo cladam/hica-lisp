@@ -17,13 +17,16 @@ pub fun tok_line(t: Token) : int    => match t { Token(_, l, _) => l }
 pub fun tok_col(t: Token) : int     => match t { Token(_, _, c) => c }
 
 // LVal is the single recursive type that represents every value in HiLisp —
-// numbers, symbols, strings, booleans, lists, functions, and nil
+// numbers, symbols, strings, booleans, lists, hash-maps, functions, and nil.
+// Hash-map entries are keyed by string; insertion order is preserved by the
+// alist backing store.
 pub type LVal {
   LNum(n: int),
   LSym(name: string, span: Span),
   LStr(s: string),
   LBool(b: bool),
   LList(items: list<LVal>),
+  LHash(entries: list<(string, LVal)>),
   LFun(fname: string, params: list<string>, body: LVal, env: Env),
   LBuiltin(name: string),
   LRecur(args: list<LVal>),
@@ -33,6 +36,7 @@ pub type LVal {
 
 // Convenience constructors
 pub fun lsym(name: string) : LVal => LSym(name, NoSpan)
+pub fun lhash(entries: list<(string, LVal)>) : LVal => LHash(entries)
 pub fun lerror_full(id: string, msg: string, note: string, span: Span) : LVal => LError(id, msg, note, span)
 pub fun lerror_at(id: string, msg: string, span: Span) : LVal => LError(id, msg, "", span)
 pub fun lerror(id: string, msg: string) : LVal => LError(id, msg, "", NoSpan)

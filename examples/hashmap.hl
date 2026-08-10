@@ -1,0 +1,51 @@
+; hashmap.hl — HiLisp hash-map demo
+; Run:  ./hilisp examples/hashmap.hl
+;
+; Shows the (hash-map ...) constructor, the {k v ...} reader literal, and
+; the eight core hash operations.
+
+; ── constructor and reader literal both produce equal values ────────────
+(def a (hash-map "tabsize" 4 "theme" "gruvbox"))
+(def b {"tabsize" 4 "theme" "gruvbox"})
+
+(println (str "a         : " a))
+(println (str "b         : " b))
+(println (str "a = b     : " (= a b)))
+
+; ── basic lookup, with and without a default ────────────────────────────
+(println (str "theme     : " (hash-get a "theme")))
+(println (str "missing   : " (hash-get a "missing")))
+(println (str "missing/d : " (hash-get a "missing" "default")))
+
+; ── immutable update: hash-set returns a new map ────────────────────────
+(def c (hash-set a "theme" "nord"))
+(println (str "c         : " c))
+(println (str "a still   : " (hash-get a "theme")))
+
+; ── membership and removal ──────────────────────────────────────────────
+(println (str "has theme?: " (hash-has? a "theme")))
+(def d (hash-del a "theme"))
+(println (str "d         : " d))
+(println (str "d has?    : " (hash-has? d "theme")))
+
+; ── keys / vals preserve insertion order ────────────────────────────────
+(println (str "keys      : " (hash-keys a)))
+(println (str "vals      : " (hash-vals a)))
+
+; ── equality is order-independent ───────────────────────────────────────
+(println (str "order eq  : "
+              (= {"a" 1 "b" 2}
+                 {"b" 2 "a" 1})))
+
+; ── nested maps ─────────────────────────────────────────────────────────
+(def config
+  {"editor" {"tabsize" 4 "wrap" true}
+   "ui"     {"theme"   "gruvbox"}})
+
+(println (str "nested    : " config))
+(println (str "tabsize   : " (hash-get (hash-get config "editor") "tabsize")))
+
+; ── hash? type predicate ────────────────────────────────────────────────
+(println (str "hash? {}  : " (hash? {})))
+(println (str "hash? ()  : " (hash? (list))))
+(println (str "hash? 1   : " (hash? 1)))

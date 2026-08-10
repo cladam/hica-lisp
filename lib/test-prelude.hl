@@ -171,6 +171,24 @@
 (check "join empty"         ""                   (join ", " (list)))
 (check "join no-sep"        "abc"                (join "" (list "a" "b" "c")))
 
+; ── hash-maps (v0.7) ─────────────────────────────────────────────────────
+
+(check "hash-map ctor = reader"    true    (= (hash-map "a" 1 "b" 2) {"a" 1 "b" 2}))
+(check "hash-get present"          1       (hash-get {"a" 1} "a"))
+(check "hash-get missing → nil"    nil     (hash-get {"a" 1} "z"))
+(check "hash-get missing default"  99      (hash-get {"a" 1} "z" 99))
+(check "hash-set new key"          2       (hash-get (hash-set {"a" 1} "b" 2) "b"))
+(check "hash-set overwrites"       9       (hash-get (hash-set {"a" 1} "a" 9) "a"))
+(check "hash-del removes"          false   (hash-has? (hash-del {"a" 1} "a") "a"))
+(check "hash-has? yes"             true    (hash-has? {"a" 1} "a"))
+(check "hash-has? no"              false   (hash-has? {"a" 1} "z"))
+(check "hash-keys order"           (list "a" "b")   (hash-keys {"a" 1 "b" 2}))
+(check "hash-vals order"           (list 1 2)       (hash-vals {"a" 1 "b" 2}))
+(check "hash? {} true"             true    (hash? {}))
+(check "hash? list false"          false   (hash? (list)))
+(check "hash equality reorder"     true    (= {"a" 1 "b" 2} {"b" 2 "a" 1}))
+(check "hash inequality"           false   (= {"a" 1} {"a" 2}))
+
 )) ; end results
 
 ; ── summary ──────────────────────────────────────────────────────────────
