@@ -17,7 +17,7 @@ Inspiration: **[Carp](https://carp-lang.github.io/Carp/LanguageGuide.html)** (sp
 # Run a .hl file
 ./hilisp examples/recursion.hl
 
-# Build from source (requires hica ≥ 0.29.3 and Koka 3.2.3)
+# Build from source (requires hica ≥ 0.49.2 and Koka 3.2.3)
 hica build -o hilisp
 ```
 
@@ -109,6 +109,46 @@ error[type/wrong-type]: hash-get expects (hash key) or (hash key default)
  3 | (hash-get)
    |  ^
 ```
+
+### Embedding: host builtins
+
+HiLisp is designed to be embedded. Host applications (like
+[hedit](https://github.com/cladam/hedit)) can register a single native
+Hica callback that handles any builtin name starting with `host/`:
+
+```hica
+// In your embedder's Hica code
+import "hica-lisp/src/lisp"
+
+// A callback that dispatches on the operation name and can mutate
+// application state via a shared handle
+fun my_host_dispatch(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
+  match (name, args) {
+    ("host/set", [LStr(k), v]) => (LNil, apply_my_set(k, v, env)),
+    ("host/get", [LStr(k)])    => (lookup_my_get(k), env),
+    _                          => (lerror("host/unknown", "unknown op: " + name), env)
+  }
+
+let env  = make_env()
+let env2 = register_host_dispatch(env, my_host_dispatch)
+// eval scripts against env2; (host/set …) / (host/get …) now route to your callback
+```
+
+In HiLisp source you can then write `(host/set "tabsize" 4)` directly, or
+alias the ugly `host/` prefix in a preamble the host injects:
+
+```lisp
+(def set host/set)
+(def get host/get)
+(set "tabsize"    4)
+(set "auto-indent" true)
+```
+
+If nothing is registered, `host/foo` calls produce a source-located
+`error[host/not-registered]` — never silent failure. See
+`src/builtins.hc` for `register_host_dispatch` and the five regression
+tests covering dispatch behaviour.
+
 
 
 ### Example — recursion

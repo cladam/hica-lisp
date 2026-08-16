@@ -49,11 +49,26 @@ pub fun with_span(v: LVal, span: Span) : LVal =>
     _ => v
   }
 
-// Env and LVal are mutually recursive — LFun captures an Env, Env holds LVals
-// Bindings are a Hica map (list<(string, LVal)>); parent chains implement lexical scope
+// Env and LVal are mutually recursive — LFun captures an Env, Env holds LVals.
+// Bindings are a Hica map (list<(string, LVal)>); parent chains implement lexical scope.
+//
+// `host` carries an optional native-Hica callback used to dispatch any builtin
+// name starting with `host/…` (see builtins.hc). Storing it on Env rather than
+// inside LVal keeps LVal a plain inductive type — a function-valued LVal
+// variant would put LVal in negative position and break Koka's kind checker.
+// The Env variant inherits `host` from its parent when constructed via
+// env_set, so registration once at make_env time is visible to all inner
+// scopes.
 pub type Env {
-  Env(bindings: list<(string, LVal)>, parent: Env),
+  Env(bindings: list<(string, LVal)>, host: HostDispatch, parent: Env),
   EmptyEnv
+}
+
+// Wrapper ADT for the optional host callback. Not part of LVal by design —
+// see the note on Env above.
+pub type HostDispatch {
+  HostFn(cb: (string, list<LVal>, Env) -> (LVal, Env)),
+  NoHostFn
 }
 
 // Everything is truthy except false and nil

@@ -179,6 +179,34 @@ error[type/wrong-type]: hash-get expects (hash key) or (hash key default)
 | `write-file path content` | Write string to file; returns `nil` or `error: …` |
 | `exec cmd` | Run shell command; returns stdout (trimmed) or `error: …` |
 
+### Embedding — host builtins
+
+When HiLisp is compiled into another Hica application (e.g. hedit), that
+application can install a **host dispatch callback**. Any script call to a
+symbol whose name starts with `host/…` routes to the callback:
+
+```hica
+// Embedder-side, in Hica
+import "path/to/hica-lisp/src/lisp"
+
+fun my_dispatch(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
+  match (name, args) {
+    ("host/set", [LStr(k), v]) => (LNil, /* mutate app state */ env),
+    ("host/get", [LStr(k)])    => (/* look up app state */ LNil, env),
+    _                          => (lerror("host/unknown", "unknown: " + name), env)
+  }
+
+let env  = make_env()
+let env2 = register_host_dispatch(env, my_dispatch)
+// eval user scripts against env2
+```
+
+The host callback is stored on `Env` and preserved across `env_set`, so
+registrations survive every subsequent `def` / `let`. Symbols of the shape
+`host/foo` resolve automatically to a builtin sentinel — you never need to
+`(def host/set …)` explicitly. If no dispatch is registered, calls surface
+as `error[host/not-registered]` with a caret snippet at the offending form.
+
 ---
 
 ## Standard library `lib/prelude.hl`

@@ -10,9 +10,17 @@ pub fun eval(expr: LVal, env: Env) : (LVal, Env) => match expr {
   LStr(s)      => (LStr(s), env),
   LBool(b)     => (LBool(b), env),
   LNil         => (LNil, env),
+  // Symbol resolution:
+  //   1. explicit binding in scope wins,
+  //   2. names of the shape `host/…` resolve to the registered host
+  //      dispatch callback (as an LBuiltin sentinel so `(host/set …)`
+  //      still goes through eval_call → apply_builtin → apply_host_dispatch),
+  //   3. otherwise it's an undefined-symbol error.
   LSym(name, span) => match env_has(env, name) {
     true  => (env_get(env, name), env),
-    false => (lerror_at("eval/undefined-symbol", "'" + name + "' is not defined", span), env)
+    false =>
+      if starts_with(name, "host/") { (LBuiltin(name), env) }
+      else { (lerror_at("eval/undefined-symbol", "'" + name + "' is not defined", span), env) }
   },
   LList(items) => eval_list(items, env),
   _            => (LNil, env)
@@ -188,7 +196,7 @@ pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
       LFun(fname, params, body, closure_env) => {
         // Inject self-reference so named functions can call themselves recursively
         let base_env    = if fname == "" { closure_env } else { env_set(closure_env, fname, f) }
-        let call_env    = bind_params(params, args, Env([], base_env))
+        let call_env    = bind_params(params, args, Env([], NoHostFn, base_env))
         let (result, _) = eval(body, call_env)
         (result, env)  // discard inner scope, return calling env
       },
@@ -258,7 +266,7 @@ pub fun run_loop(names: list<string>, body: LVal, loop_env: Env, outer_env: Env)
   let (result, _) = eval(body, loop_env)
   match result {
     LRecur(new_args) => {
-      let new_env = bind_params(names, new_args, Env([], outer_env))
+      let new_env = bind_params(names, new_args, Env([], NoHostFn, outer_env))
       run_loop(names, body, new_env, outer_env)
     },
     _ => (result, outer_env)
@@ -269,7 +277,7 @@ pub fun run_loop(names: list<string>, body: LVal, loop_env: Env, outer_env: Env)
 pub fun eval_loop(bindings: list<LVal>, body: LVal, env: Env) : (LVal, Env) {
   let names          = extract_loop_names(bindings)
   let (init_vals, env2) = eval_loop_init(bindings, env)
-  let loop_env       = bind_params(names, init_vals, Env([], env2))
+  let loop_env       = bind_params(names, init_vals, Env([], NoHostFn, env2))
   run_loop(names, body, loop_env, env2)
 }
 

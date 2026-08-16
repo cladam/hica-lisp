@@ -474,8 +474,51 @@ pub fun builtin_random(args: list<LVal>) =>
     _ => lerror("type/arity", "random expects (lo hi)")
   }
 
-// Dispatch — maps a builtin name to its implementation
+// Register a native Hica callback as the handler for any builtin name
+// prefixed with `host/`. Returns a new Env with the callback installed on
+// the current scope; env_set preserves it so subsequent bindings still see
+// the dispatch.
+//
+// Usage from the embedder:
+//   let env  = make_env()
+//   let env2 = register_host_dispatch(env, (name, args, e) => {
+//       // dispatch on name (e.g. "host/set", "host/get"), mutate host state
+//       // via a shared handle, return (result, e)
+//       ...
+//   })
+//
+// After registration, `(host/set "tabsize" 4)` in HiLisp will route to the
+// callback. Users typically re-alias `host/set` as `set` in a preamble.
+pub fun register_host_dispatch(env: Env, cb: (string, list<LVal>, Env) -> (LVal, Env)) : Env =>
+  env_set_host(env, HostFn(cb))
+
+// Look up the host dispatch callback and invoke it. If no dispatch has been
+// registered we return an LError so the offending call surfaces with the
+// usual span-annotated snippet rather than silently returning nil.
+pub fun apply_host_dispatch(name: string, args: list<LVal>, env: Env) : (LVal, Env) =>
+  match env_host(env) {
+    HostFn(cb) => cb(name, args, env),
+    NoHostFn   => (lerror("host/not-registered",
+                          "no host dispatch registered for '" + name + "'"), env)
+  }
+
+// Dispatch — maps a builtin name to its implementation.
+//
+// Names starting with `host/` are routed to the embedder-supplied callback
+// (see `register_host_dispatch`). This is HiLisp's single, focused extension
+// point for host applications that need side-effecting operations on their
+// own state (e.g. hedit's config mutations).
 pub fun apply_builtin(name: string, args: list<LVal>, env: Env) =>
+  if starts_with(name, "host/") {
+    apply_host_dispatch(name, args, env)
+  } else {
+    apply_core_builtin(name, args, env)
+  }
+
+// Core builtin dispatch — split out from apply_builtin so the `host/…`
+// prefix check above can guard it. Adding a builtin means adding a match
+// arm here (and the name to make_env's `names` list).
+pub fun apply_core_builtin(name: string, args: list<LVal>, env: Env) =>
   match name {
     "+"       => (builtin_add(args), env),
     "-"       => (builtin_sub(args), env),
@@ -685,3 +728,64 @@ test "symbol-name extracts the name" {
   let is_err = match err { LError(_, _, _, _) => true, _ => false }
   assert(is_err)
 }
+
+// ── Host dispatch ────────────────────────────────────────────────────────────
+
+test "host dispatch not registered returns LError" {
+  // Route through apply_builtin so the host/ prefix branch runs
+  let env = make_env()
+  let (r, _) = apply_builtin("host/whatever", [], env)
+  let is_err = match r {
+    LError(id, _, _, _) => id == "host/not-registered",
+    _                   => false
+  }
+  assert(is_err)
+}
+
+test "register_host_dispatch installs a callback" {
+  let env  = make_env()
+  // Trivial handler: any host/foo call echoes the name back as a string.
+  let env2 = register_host_dispatch(env, (name, _args, e) => (LStr(name), e))
+  let (r, _) = apply_builtin("host/echo", [], env2)
+  assert_eq(lval_show(r), "\"host/echo\"")
+}
+
+// Top-level helper: parameter type annotations are needed so Hica can infer
+// the callback's exact signature. Kept out of the test body so its type
+// isn't inferred as a bool-returning lambda.
+pub fun test_set_cb(name: string, args: list<LVal>, e: Env) : (LVal, Env) =>
+  match (name, args) {
+    ("host/set", [LStr(k), v]) => (LNil, env_set(e, "cfg/" + k, v)),
+    _                          => (lerror("host/bad-args", "unexpected call"), e)
+  }
+
+test "host dispatch receives args and can mutate env" {
+  // Simulate hedit's (set key val): a handler that puts the value into
+  // the env under "cfg/<key>" and returns nil.
+  let env       = make_env()
+  let env2      = register_host_dispatch(env, test_set_cb)
+  let (_, env3) = apply_builtin("host/set", [LStr("tabsize"), LNum(4)], env2)
+  let looked_up = env_get(env3, "cfg/tabsize")
+  assert_eq(lval_show(looked_up), "4")
+}
+
+test "host dispatch survives env_set (persists across bindings)" {
+  // register_host_dispatch stores on the current scope; env_set preserves it.
+  // This test confirms that a callback registered up front is still visible
+  // after a bunch of unrelated defs.
+  let env  = make_env()
+  let env2 = register_host_dispatch(env, (_n, _a, e) => (LStr("still-here"), e))
+  let env3 = env_set(env2, "x", LNum(1))
+  let env4 = env_set(env3, "y", LNum(2))
+  let (r, _) = apply_builtin("host/probe", [], env4)
+  assert_eq(lval_show(r), "\"still-here\"")
+}
+
+test "core builtins still route through apply_core_builtin" {
+  // Non-host names must bypass the host arm even when a dispatch is registered.
+  let env  = make_env()
+  let env2 = register_host_dispatch(env, (_n, _a, e) => (LStr("host-hit"), e))
+  let (r, _) = apply_builtin("+", [LNum(2), LNum(3)], env2)
+  assert_eq(lval_show(r), "5")
+}
+

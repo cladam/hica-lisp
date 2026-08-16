@@ -5,6 +5,7 @@
 src/.DS_Store
 
 docs/building-lisp-in-hica.md
+docs/hica-issue-div-type.md
 
 src/*
 !src/*.hc

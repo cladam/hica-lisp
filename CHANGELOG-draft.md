@@ -1,3 +1,61 @@
+# Unreleased — v0.9.0
+
+Embedding-oriented release: HiLisp now has a first-class extension point for
+host applications. Drives hedit's design §7.5 out of its "ugly form"
+workaround and closes the last piece of the hedit-side HiLisp gap analysis.
+
+### ✨ Features
+
+- **Host builtins hook (`host/…` dispatch).** A single, focused extension
+  point for embedders. Any call to a symbol prefixed with `host/`
+  (`(host/set …)`, `(host/get …)`, `(host/bind …)`) is routed to a native
+  Hica callback the embedder registers once at env-creation time. HiLisp
+  itself stays a closed match over its own builtins — no plugin registries,
+  no dynamic dispatch table — and hosts can mutate their own state without
+  ever leaking into the interpreter.
+  - New Env field `host: HostDispatch` (variant `HostFn(cb) | NoHostFn`),
+    preserved across `env_set` so the registration is visible to every
+    inner scope.
+  - New `register_host_dispatch(env, cb) : Env` — installs the callback.
+  - `host/…` symbols resolve automatically in `eval` (as an `LBuiltin`
+    sentinel), so users don't need to explicitly `def` them; unresolved
+    `host/foo` with no dispatch registered produces a source-located
+    `LError` with id `host/not-registered`.
+  - `apply_builtin` guards the core dispatch: `host/…` names go through
+    `apply_host_dispatch`; everything else falls through to
+    `apply_core_builtin` unchanged.
+- **Env helpers `env_host` / `env_set_host`** for reading and installing
+  the callback without touching bindings. Used by
+  `register_host_dispatch`; also useful for host-side testing.
+
+### 🧪 Tests
+
+- +5 host-dispatch tests in `src/builtins.hc` (22 total in that module):
+  not-registered error, echo callback, arg + env mutation, persistence
+  across `env_set`, and non-`host/` routing still hitting the core arm.
+- All 123 prelude regression tests still pass.
+
+### 🔨 Compatibility
+
+- **Requires hica ≥ 0.49.2** — the compiler now auto-detects the need for
+  Koka's `div type` in codegen, which is what allows the `HostDispatch`
+  callback (a function whose parameter list mentions `Env`) to compile
+  cleanly. Older Hica versions will refuse the generated `.kk`.
+- No changes to existing builtins, special forms, or the `LVal` public
+  variants. Scripts that don't touch `host/…` are unaffected.
+- Env constructor changed from `Env(bindings, parent)` to
+  `Env(bindings, host, parent)`. The three internal call sites in `eval`
+  (fn apply, loop, recur) were updated; user code never constructs `Env`
+  directly, so this is source-compatible for scripts.
+- Version bump `0.8.0 → 0.9.0`.
+
+### 📚 Docs
+
+- `docs/hica-issue-div-type.md`: write-up of the compiler support we
+  needed and got (upstreamed as `hica` v0.49.2). Kept in the repo as a
+  design-note reference.
+- CHANGELOG updated (this file).
+
 # Unreleased — v0.8.0
 
 Config-oriented release driven by the hedit design's HiLisp gap analysis (§8).
