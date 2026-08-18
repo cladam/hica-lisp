@@ -272,7 +272,19 @@ pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
         // Inject self-reference so named functions can call themselves recursively
         let base_env       = if fname == "" { closure_env } else { env_set(closure_env, fname, f) }
         let call_env       = bind_params(params, args, Env([], NoHostFn, base_env))
-        let (result, inner_env) = eval(body, call_env)
+        // Pre-merge: pull the caller's latest `__`-prefixed host state
+        // into the callee's topmost frame *before* eval. Closures snapshot
+        // their defining env, so without this a wrapper like
+        // `(def set (fn (k v) (host/set k v)))` would see stale host
+        // state on the second and later calls — the first `(set …)`
+        // mutation lives in the caller's env, but the closure_env still
+        // holds the pre-call snapshot. Symmetric with the outbound merge
+        // below; together they make host state behave as if shared
+        // across the boundary while user-visible bindings stay scoped.
+        let call_env2      =
+          if body_touches_host(body) { merge_host_bindings(call_env, env) }
+          else { call_env }
+        let (result, inner_env) = eval(body, call_env2)
         // Merge host-visible mutations back into the caller's env
         // when the body dispatched through a `host/…` builtin; otherwise
         // preserve normal Lisp scope semantics by returning `env` intact.
@@ -453,4 +465,46 @@ test "eval recursive defn" {
   let (r1, _)   = eval(LList([lsym("fact"), LNum(1)]), env1)
   assert_eq(lval_show(r5), "120")
   assert_eq(lval_show(r1), "1")
+}
+
+// Regression test for the "second host call sees stale state" bug that
+// hedit's M4 hit. Simulates a hedit-like `bind` handler that stores the
+// key→cmd pair into `__hedit_bindings` (a hash-map) on the env. We wrap
+// `host/bind` in a plain-Lisp lambda (as hedit's preamble does), then
+// call it twice through that wrapper. Before the pre-merge fix, the
+// second call's closure_env still held the pre-first-call snapshot of
+// `__hedit_bindings`, so the second bind overwrote the first instead of
+// accumulating.
+pub fun probe_bind_cb(name: string, args: list<LVal>, e: Env) : (LVal, Env) =>
+  match (name, args) {
+    ("host/bind", [LStr(k), v]) => {
+      let cur   = env_get(e, "__probe_bindings")
+      let m     = match cur { LHash(_) => cur, _ => LHash([]) }
+      let m2    = builtin_hash_set([m, LStr(k), v])
+      (LNil, env_set(e, "__probe_bindings", m2))
+    },
+    _ => (lerror("host/bad-args", "unexpected call"), e)
+  }
+
+test "host wrapper: two sequential bind calls accumulate" {
+  let env  = make_env()
+  let env2 = register_host_dispatch(env, probe_bind_cb)
+  // Seed the shared slot so it exists on the env before any wrapper
+  // captures its closure.
+  let env3 = env_set(env2, "__probe_bindings", LHash([]))
+  // (def bind (fn (k v) (host/bind k v)))
+  let wrapper = LList([lsym("fn"),
+    LList([lsym("k"), lsym("v")]),
+    LList([lsym("host/bind"), lsym("k"), lsym("v")])])
+  let (_, env4) = eval(LList([lsym("def"), lsym("bind"), wrapper]), env3)
+  // Values must be self-evaluating (or explicitly quoted) — bare `quit`
+  // would be treated as a symbol lookup and fail with undefined-symbol,
+  // short-circuiting apply before the wrapper body runs.
+  let q_quit   = LList([lsym("quote"), lsym("quit")])
+  let q_ignore = LList([lsym("quote"), lsym("ignore")])
+  let (_, env5) = eval(LList([lsym("bind"), LStr("Ctrl-x"), q_quit]),   env4)
+  let (_, env6) = eval(LList([lsym("bind"), LStr("Ctrl-q"), q_ignore]), env5)
+  let m = env_get(env6, "__probe_bindings")
+  assert_eq(lval_show(builtin_hash_get([m, LStr("Ctrl-x")])), "quit")
+  assert_eq(lval_show(builtin_hash_get([m, LStr("Ctrl-q")])), "ignore")
 }

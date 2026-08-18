@@ -1,3 +1,29 @@
+# Unreleased — v0.9.2
+
+Bug-fix release: makes the host-dispatch carve-out symmetric so plain-Lisp
+wrappers around `host/…` builtins can be called multiple times without
+losing state.
+
+### 🐛 Bug Fixes
+
+- **Host wrappers now see fresh host state on every call.** `apply` already
+  merged the callee's `__`-prefixed bindings *back* into the caller's env
+  after a body that touches `host/…`. It now also *pre-merges* the caller's
+  latest `__`-prefixed keys **into** the callee's topmost frame before
+  evaluating the body. Without this, a wrapper like
+  `(def bind (fn (k v) (host/bind k v)))` would run against its captured
+  closure's snapshot of `__hedit_bindings` — so the second `(bind …)`
+  overwrote the first instead of accumulating. Symptom: hedit M4b's
+  end-to-end test bound `Ctrl-x` then `Ctrl-q`, and `Ctrl-x` resolved to
+  `Ignore` instead of `Quit`. New regression test
+  `host wrapper: two sequential bind calls accumulate` in `src/eval.hc`
+  covers this precisely.
+
+### 🔨 Compatibility
+
+- No API changes; embedders using `register_host_dispatch` need no code
+  changes. Version bump `0.9.1 → 0.9.2`.
+
 # Unreleased — v0.9.0
 
 Embedding-oriented release: HiLisp now has a first-class extension point for
