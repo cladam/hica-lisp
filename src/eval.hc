@@ -185,7 +185,82 @@ pub fun first_error(args: list<LVal>) : LVal =>
     [_, ..rest]                 => first_error(rest)
   }
 
-// Apply a callable to evaluated arguments, propagating any error values
+// Detect whether a function body ultimately routes to a `host/…`
+// builtin. Used by `apply` to decide whether to propagate env
+// mutations from an LFun call — normally we discard the callee's env
+// (proper Lisp scope), but when the callee's whole purpose is to
+// dispatch to the embedder's host we need those mutations to reach
+// the caller so `(def foo (fn (…) (host/set …)))` wrappers work.
+//
+// We only look at the *shape* of the body, not evaluate it, so this
+// stays total and cheap. Only three shapes matter:
+//
+//   1. `(host/whatever …)`            — direct dispatch
+//   2. `(some-fn (host/whatever …))`  — dispatch nested in a call
+//   3. everything else                — standard scope semantics
+//
+// Case (1) is what `hedit`'s preamble emits (`(def set (fn (k v)
+// (host/set k v)))`). Case (2) covers convenience wrappers like
+// `(fn (k v) (println (host/set k v)))` should any host add them.
+pub fun body_touches_host(body: LVal) : bool =>
+  match body {
+    LList([LSym(name, _), .._]) => starts_with(name, "host/") || contains_host_call([body]),
+    LList(items)                => contains_host_call(items),
+    _                           => false
+  }
+
+pub fun contains_host_call(items: list<LVal>) : bool =>
+  match items {
+    [] => false,
+    [x, ..rest] =>
+      match x {
+        LList([LSym(name, _), .._]) =>
+          if starts_with(name, "host/") { true } else { contains_host_call(rest) },
+        _ => contains_host_call(rest)
+      }
+  }
+
+// Copy every `__`-prefixed binding from `donor`'s topmost frame into
+// `receiver`. The `__` prefix is the convention embedders use for
+// host-visible state (see hedit's `__hedit_bindings` /
+// `__hedit_values`). Bindings *without* the prefix — the callee's
+// user-visible `def`s and lambda params — stay inside the callee's
+// scope, preserving normal Lisp semantics.
+//
+// We deliberately look at *only* the topmost frame. `env_set` on the
+// callee (see `types.hc::env_set`) always mutates the current scope,
+// so a `host/…` callback's writes land there. Walking deeper into the
+// chain would re-visit the caller's *original* pre-call snapshot of
+// those same keys and overwrite our fresh values with the stale ones
+// (parent envs live *after* the caller's mutations in insertion
+// order).
+pub fun merge_host_bindings(receiver: Env, donor: Env) : Env =>
+  match donor {
+    EmptyEnv                 => receiver,
+    Env(bindings, _, _) => copy_host_pairs(receiver, bindings)
+  }
+
+pub fun copy_host_pairs(receiver: Env, pairs: list<(string, LVal)>) : Env =>
+  match pairs {
+    [] => receiver,
+    [(k, v), ..rest] =>
+      if starts_with(k, "__") { copy_host_pairs(env_set(receiver, k, v), rest) }
+      else { copy_host_pairs(receiver, rest) }
+  }
+
+// Apply a callable to evaluated arguments, propagating any error values.
+//
+// LFun calls normally discard the callee's env (standard Lisp: `def`
+// inside a function body doesn't leak into the caller). We make one
+// carve-out: if the function body ultimately dispatches to a `host/…`
+// builtin, we salvage the host-visible mutations from the callee's
+// env and layer them onto the caller's env via `merge_host_bindings`.
+// That way host dispatches routed through a plain-Lisp wrapper
+// (`(def set (fn (k v) (host/set k v)))`) persist their state without
+// leaking the callee's local `def`s / lambda params into the caller.
+// Without this carve-out, embedders can only mutate host state from
+// bare `(host/xxx …)` calls, which forces every user file to spell out
+// the ugly `host/` prefix.
 pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
   let err     = first_error(args)
   let has_err = match err { LError(_, _, _, _) => true, _ => false }
@@ -195,10 +270,16 @@ pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
     match f {
       LFun(fname, params, body, closure_env) => {
         // Inject self-reference so named functions can call themselves recursively
-        let base_env    = if fname == "" { closure_env } else { env_set(closure_env, fname, f) }
-        let call_env    = bind_params(params, args, Env([], NoHostFn, base_env))
-        let (result, _) = eval(body, call_env)
-        (result, env)  // discard inner scope, return calling env
+        let base_env       = if fname == "" { closure_env } else { env_set(closure_env, fname, f) }
+        let call_env       = bind_params(params, args, Env([], NoHostFn, base_env))
+        let (result, inner_env) = eval(body, call_env)
+        // Merge host-visible mutations back into the caller's env
+        // when the body dispatched through a `host/…` builtin; otherwise
+        // preserve normal Lisp scope semantics by returning `env` intact.
+        let out_env =
+          if body_touches_host(body) { merge_host_bindings(env, inner_env) }
+          else { env }
+        (result, out_env)
       },
       LBuiltin(name) => apply_builtin(name, args, env),
       _              => (lerror("eval/not-a-function", "not a function"), env)
