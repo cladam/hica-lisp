@@ -185,23 +185,14 @@ pub fun first_error(args: list<LVal>) : LVal =>
     [_, ..rest]                 => first_error(rest)
   }
 
-// Detect whether a function body ultimately routes to a `host/…`
-// builtin. Used by `apply` to decide whether to propagate env
-// mutations from an LFun call — normally we discard the callee's env
-// (proper Lisp scope), but when the callee's whole purpose is to
-// dispatch to the embedder's host we need those mutations to reach
-// the caller so `(def foo (fn (…) (host/set …)))` wrappers work.
-//
-// We only look at the *shape* of the body, not evaluate it, so this
-// stays total and cheap. Only three shapes matter:
-//
-//   1. `(host/whatever …)`            — direct dispatch
-//   2. `(some-fn (host/whatever …))`  — dispatch nested in a call
-//   3. everything else                — standard scope semantics
-//
-// Case (1) is what `hedit`'s preamble emits (`(def set (fn (k v)
-// (host/set k v)))`). Case (2) covers convenience wrappers like
-// `(fn (k v) (println (host/set k v)))` should any host add them.
+// Detect whether a function body's outermost form is a literal
+// `(host/whatever …)` call, by shape alone (no evaluation). Kept as a
+// standalone static-analysis helper, but `apply` below no longer uses
+// it to gate the host-state merge — see the note on `apply` for why a
+// purely syntactic, non-recursive check can't see through an
+// embedder's own alias wrappers (e.g. hedit's `(def set (fn (k v)
+// (host/set k v)))` called as `(set …)` from inside a *user*-defined
+// closure) or arbitrary nesting depth.
 pub fun body_touches_host(body: LVal) : bool =>
   match body {
     LList([LSym(name, _), .._]) => starts_with(name, "host/") || contains_host_call([body]),
@@ -251,16 +242,21 @@ pub fun copy_host_pairs(receiver: Env, pairs: list<(string, LVal)>) : Env =>
 // Apply a callable to evaluated arguments, propagating any error values.
 //
 // LFun calls normally discard the callee's env (standard Lisp: `def`
-// inside a function body doesn't leak into the caller). We make one
-// carve-out: if the function body ultimately dispatches to a `host/…`
-// builtin, we salvage the host-visible mutations from the callee's
-// env and layer them onto the caller's env via `merge_host_bindings`.
-// That way host dispatches routed through a plain-Lisp wrapper
-// (`(def set (fn (k v) (host/set k v)))`) persist their state without
-// leaking the callee's local `def`s / lambda params into the caller.
-// Without this carve-out, embedders can only mutate host state from
-// bare `(host/xxx …)` calls, which forces every user file to spell out
-// the ugly `host/` prefix.
+// inside a function body doesn't leak into the caller). We always
+// salvage the `__`-prefixed host-visible bindings both ways via
+// `merge_host_bindings` — that filter (not a syntactic body check) is
+// the real safety boundary, so this can never leak a callee's local
+// `def`s / lambda params into the caller.
+//
+// This used to be gated on a "does the body look like a `(host/…)`
+// call" syntactic check, dropped because it's both redundant (the
+// `__`-prefix filter already guarantees safety) and wrong for
+// anything less direct than a bare wrapper: an embedder's own alias
+// (e.g. hedit's `(def set (fn (k v) (host/set k v)))`) is just a
+// bound symbol to that check, so a *user*-defined closure calling
+// `(set "k" "v")` — or any `(host/…)` nested more than one call deep —
+// never matched, silently dropping host-state mutations/reads made
+// from inside hook-style callbacks. Always merging fixes both.
 pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
   let err     = first_error(args)
   let has_err = match err { LError(_, _, _, _) => true, _ => false }
@@ -281,16 +277,12 @@ pub fun apply(f: LVal, args: list<LVal>, env: Env) : (LVal, Env) {
         // holds the pre-call snapshot. Symmetric with the outbound merge
         // below; together they make host state behave as if shared
         // across the boundary while user-visible bindings stay scoped.
-        let call_env2      =
-          if body_touches_host(body) { merge_host_bindings(call_env, env) }
-          else { call_env }
+        let call_env2           = merge_host_bindings(call_env, env)
         let (result, inner_env) = eval(body, call_env2)
-        // Merge host-visible mutations back into the caller's env
-        // when the body dispatched through a `host/…` builtin; otherwise
-        // preserve normal Lisp scope semantics by returning `env` intact.
-        let out_env =
-          if body_touches_host(body) { merge_host_bindings(env, inner_env) }
-          else { env }
+        // Merge host-visible mutations back into the caller's env —
+        // always safe since `merge_host_bindings` only ever copies
+        // `__`-prefixed keys.
+        let out_env             = merge_host_bindings(env, inner_env)
         (result, out_env)
       },
       LBuiltin(name) => apply_builtin(name, args, env),
