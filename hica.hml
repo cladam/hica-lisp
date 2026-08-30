@@ -5,8 +5,6 @@
     entry: "src/main.hc"
 }
 
-@dependencies {}
-
 @description {
     summary: "HiLisp is a lisp built in hica, inspired by Carp"
     author: "cladam"
