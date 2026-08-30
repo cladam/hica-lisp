@@ -45,8 +45,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          curl -fsSL -o "$env:TEMP\install-hica.ps1" https://cladam.github.io/hica/install.ps1
-          & "$env:TEMP\install-hica.ps1"
+          # Pinned to v0.49.6 — v0.49.14 has a Windows build regression
+          $url = "https://github.com/cladam/hica/releases/download/v0.49.6/hica-windows-x86_64.zip"
+          curl -fsSL -o "$env:TEMP\hica.zip" $url
+          New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\hica" | Out-Null
+          Expand-Archive -Path "$env:TEMP\hica.zip" -DestinationPath "$env:LOCALAPPDATA\hica" -Force
           "$env:LOCALAPPDATA\hica" | Out-File -Append -FilePath $env:GITHUB_PATH
 
       - name: Verify tools
