@@ -1,0 +1,21 @@
+# hica.lock — auto-generated, do not edit
+
+[[package]]
+name = "summary"
+version = "HiLisp is a lisp built in hica, inspired by Carp"
+source = "registry+pkg.hica.dev@HiLisp is a lisp built in hica, inspired by Carp"
+
+[[package]]
+name = "author"
+version = "cladam"
+source = "registry+pkg.hica.dev@cladam"
+
+[[package]]
+name = "homepage"
+version = "main"
+source = "git+https://https://cladam.github.io/?tag=main"
+
+[[package]]
+name = "repository"
+version = "main"
+source = "git+https://https://github.com/cladam/hica-lisp?tag=main"
