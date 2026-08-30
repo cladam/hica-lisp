@@ -78,7 +78,10 @@ jobs:
       - name: Build hilisp binary (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
-        run: hica build -o hilisp
+        run: |
+          New-Item -ItemType Directory -Force "$env:USERPROFILE\.hica\stdlib" | Out-Null
+          hica build -o hilisp
+          if (-not (Test-Path ".\hilisp.exe")) { Write-Error "hica build produced no binary"; exit 1 }
 
       - name: Run prelude tests (Unix)
         if: runner.os != 'Windows'
