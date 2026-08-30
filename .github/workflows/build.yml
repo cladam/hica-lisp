@@ -67,22 +67,35 @@ jobs:
             echo "$name: $result"
           done
 
-      - name: Build hilisp binary
+      - name: Build hilisp binary (Unix)
+        if: runner.os != 'Windows'
         shell: bash
-        run: |
-          mkdir -p "$HOME/.hica/stdlib"
-          hica build -o hilisp
+        run: hica build -o hilisp
 
-      - name: Run prelude tests
+      - name: Build hilisp binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: hica build -o hilisp
+
+      - name: Run prelude tests (Unix)
+        if: runner.os != 'Windows'
         shell: bash
-        env:
-          HILISP: ${{ runner.os == 'Windows' && './hilisp.exe' || './hilisp' }}
         run: |
-          output=$($HILISP lib/prelude.hl lib/test-prelude.hl)
+          output=$(./hilisp lib/prelude.hl lib/test-prelude.hl)
           echo "$output"
-          # Fail the step if any tests failed
           echo "$output" | grep -q "^failed: 0" \
             || { echo "::error::Prelude tests failed — see output above"; exit 1; }
+
+      - name: Run prelude tests (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $output = & .\hilisp.exe lib\prelude.hl lib\test-prelude.hl
+          Write-Output $output
+          if (-not ($output -match '(?m)^failed: 0')) {
+            Write-Output '::error::Prelude tests failed — see output above'
+            exit 1
+          }
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
