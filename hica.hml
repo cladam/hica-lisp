@@ -6,10 +6,3 @@
 }
 
 @dependencies {}
-
-@description {
-    summary: "HiLisp is a lisp built in hica, inspired by Carp"
-    author: "cladam"
-    homepage: "https://cladam.github.io/"
-    repository: "https://github.com/cladam/hica-lisp"
-}
