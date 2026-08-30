@@ -6,6 +6,13 @@ HiLisp is a tree-walking Lisp interpreter built entirely in
 expressive enough to implement a real language, including closures, recursion, and
 higher-order functions.
 
+HiLisp is also designed to be **embedded**. Host applications import
+`hica-lisp/src/lisp` and register a native callback via `register_host_dispatch` to
+expose their own operations under the `host/` prefix. This is how
+[hedit](https://github.com/cladam/hedit) uses HiLisp as its plugin and configuration
+language — user scripts call `(host/set "tabsize" 4)` or define key bindings, and
+hedit handles the side effects.
+
 Inspiration: **[Carp](https://carp-lang.github.io/Carp/LanguageGuide.html)** (special form vocabulary) and **[Jank](https://jank-lang.org/)** (`loop`/`recur` tail-recursive iteration).
 
 ## Quick start
